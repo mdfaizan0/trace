@@ -6,3 +6,5 @@ import { authMiddleware } from "../middlewares/auth.middleware.js"
 const router = express.Router()
 
 router.post("/", authMiddleware, upload, documentUpload)
+
+export default router
