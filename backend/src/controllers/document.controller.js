@@ -1,6 +1,7 @@
 import { supabase } from "../config/supabase.js"
 import { uploadFile } from "../services/storage.service.js"
 import { generateFileHash } from "../utils/hash.js"
+import { logAuditEvent } from "../utils/logger.js"
 
 export async function documentUpload(req, res) {
     const file = req.file
@@ -47,6 +48,14 @@ export async function documentUpload(req, res) {
         if (error || !document) {
             return res.status(500).json({ message: "Error creating document", error: error.message });
         }
+
+        await logAuditEvent({
+            documentId: document.id,
+            actorType: "internal",
+            actorRef: userId,
+            action: "DOCUMENT_UPLOADED",
+            ipAddress: req.ip
+        })
 
         return res.status(201).json({
             message: "Document created successfully",

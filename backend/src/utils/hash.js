@@ -25,3 +25,20 @@ export function checkFileHash(buffer, hash) {
     }
     return crypto.createHash("sha256").update(buffer).digest("hex") === hash
 }
+
+export function generateEmailHash(email) {
+    if (!email) {
+        throw new Error("Email is required")
+    }
+    return crypto.createHash("sha256").update(email.trim().toLowerCase()).digest("hex")
+}
+
+export function checkEmailHash(email, hash) {
+    if (!email) {
+        throw new Error("Email is required")
+    }
+    if (!hash) {
+        throw new Error("Hash is required")
+    }
+    return crypto.createHash("sha256").update(email.trim().toLowerCase()).digest("hex") === hash
+}
