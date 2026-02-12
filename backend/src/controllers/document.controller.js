@@ -8,8 +8,12 @@ export async function documentUpload(req, res) {
     const { title } = req.body
     const userId = req.user.id
 
-    if (!file || !title) {
-        return res.status(400).json({ message: "All fields are required" })
+    if (!file) {
+        return res.status(400).json({ message: "File is required" })
+    }
+
+    if (!title) {
+        return res.status(400).json({ message: "Title is required" })
     }
 
     if (file.mimetype !== "application/pdf") {

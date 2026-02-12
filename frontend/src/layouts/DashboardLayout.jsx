@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate, useLocation, Link } from "react-router-dom"
+import { useNavigate, useLocation, Link, Outlet } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -19,7 +19,7 @@ const NAV_ITEMS = [
     { label: "Documents", icon: FileText, href: "/documents" },
 ]
 
-function DashboardLayout({ children }) {
+function DashboardLayout() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const navigate = useNavigate()
     const location = useLocation()
@@ -145,9 +145,7 @@ function DashboardLayout({ children }) {
                 </header>
 
                 <main className="flex-1 p-4 md:p-8">
-                    <div className="max-w-6xl mx-auto w-full">
-                        {children}
-                    </div>
+                    <Outlet />
                 </main>
             </div>
         </div>
