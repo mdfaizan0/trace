@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { signin } from "@/api/auth.api"
@@ -14,6 +14,13 @@ function Login() {
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
+
+    useEffect(() => {
+        const token = localStorage.getItem("trace_token")
+        if (token) {
+            navigate("/dashboard", { replace: true })
+        }
+    }, [navigate])
 
     const handleChange = (e) => {
         const { name, value } = e.target
