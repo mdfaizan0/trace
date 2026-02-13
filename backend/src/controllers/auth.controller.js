@@ -84,3 +84,29 @@ export async function signIn(req, res) {
         return res.status(500).json({ message: "Error signing in user", error: error.message });
     }
 }
+
+export async function getMyProfile(req, res) {
+    try {
+        const { data: user, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", req.user.id)
+            .single();
+
+        if (error) {
+            return res.status(500).json({ message: "Error fetching user profile" });
+        }
+
+        return res.status(200).json({
+            message: "User profile fetched successfully",
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching user profile:", error);
+        return res.status(500).json({ message: "Error fetching user profile", error: error.message });
+    }
+}

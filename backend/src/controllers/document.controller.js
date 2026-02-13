@@ -74,3 +74,25 @@ export async function documentUpload(req, res) {
         return res.status(500).json({ message: "Error creating document", error: error.message });
     }
 }
+
+export async function getAllDocuments(req, res) {
+    try {
+        const { data: documents, error } = await supabase
+            .from("documents")
+            .select("*")
+            .eq("owner_id", req.user.id)
+            .order("created_at", { ascending: false })
+
+        if (error) {
+            return res.status(500).json({ message: "Error fetching documents", error: error.message });
+        }
+
+        return res.status(200).json({
+            message: "Documents fetched successfully",
+            documents
+        });
+    } catch (error) {
+        console.error("Error fetching documents:", error);
+        return res.status(500).json({ message: "Error fetching documents", error: error.message });
+    }
+}

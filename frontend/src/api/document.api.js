@@ -10,3 +10,7 @@ export const uploadDocument = async (formData, onUploadProgress) => {
         onUploadProgress
     })
 }
+
+export const getAllDocuments = async () => {
+    return api.get("/api/documents")
+}

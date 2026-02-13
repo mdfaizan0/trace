@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileUp, FileText, CheckCircle2, AlertCircle, Loader2, X, Upload, Pencil } from "lucide-react"
 
-function UploadDocument() {
+function UploadDocument({ onUploadSuccess }) {
     const [file, setFile] = useState(null)
     const [title, setTitle] = useState("")
     const [progress, setProgress] = useState(0)
@@ -81,6 +81,7 @@ function UploadDocument() {
             setSuccess(true)
             setFile(null)
             setTitle("")
+            onUploadSuccess?.()
         } catch (err) {
             setError(err.response?.data?.message || err.message || "Failed to upload document")
             setProgress(0)

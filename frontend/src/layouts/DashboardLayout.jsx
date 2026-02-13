@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate, useLocation, Link, Outlet } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import {
     Bell,
     User
 } from "lucide-react"
+import { getMyProfile } from "@/api/auth.api"
 
 const NAV_ITEMS = [
     { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -20,14 +21,33 @@ const NAV_ITEMS = [
 ]
 
 function DashboardLayout() {
+    const [user, setUser] = useState(null)
+    console.log("user", user)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const navigate = useNavigate()
     const location = useLocation()
 
     const handleLogout = () => {
         localStorage.removeItem("trace_token")
+        localStorage.removeItem("user")
         navigate("/login")
     }
+
+    useEffect(() => {
+        const existingUser = localStorage.getItem("user")
+        if (existingUser) {
+            setUser(JSON.parse(existingUser))
+            return
+        }
+        async function getUser() {
+            const data = await getMyProfile()
+            if (data) {
+                setUser(data.user)
+                localStorage.setItem("user", JSON.stringify(data.user))
+            }
+        }
+        getUser()
+    }, [])
 
     const isActive = (href) => location.pathname === href
 
@@ -134,7 +154,7 @@ function DashboardLayout() {
                         <Separator orientation="vertical" className="h-6 mx-1 md:mx-2 hidden sm:block" />
                         <div className="flex items-center gap-2 pl-2">
                             <div className="hidden md:block text-right">
-                                <p className="text-xs font-semibold text-foreground leading-none">Faizan</p>
+                                <p className="text-xs font-semibold text-foreground leading-none">{user?.name || "User"}</p>
                                 <p className="text-[10px] text-muted-foreground mt-1">Free Plan</p>
                             </div>
                             <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground overflow-hidden">

@@ -1,10 +1,13 @@
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FilePlus, Clock, CheckCircle2, ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { FilePlus, Clock, CheckCircle2 } from "lucide-react"
 import UploadDocument from "@/components/UploadDocument"
+import DocumentList from "@/components/DocumentList"
 
 function Dashboard() {
+    const [refreshKey, setRefreshKey] = useState(0)
+
     const stats = [
         { label: "Active Requests", value: "3", icon: Clock, color: "text-amber-500" },
         { label: "Completed", value: "12", icon: CheckCircle2, color: "text-emerald-500" },
@@ -27,7 +30,7 @@ function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                <UploadDocument />
+                <UploadDocument onUploadSuccess={() => setRefreshKey((k) => k + 1)} />
             </motion.div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -65,38 +68,11 @@ function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
             >
-                <Card className="border-border/50 bg-card shadow-sm">
-                    <CardHeader className="border-b border-border/40 pb-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle className="text-lg font-bold">Recent Documents</CardTitle>
-                                <p className="text-xs text-muted-foreground mt-1">Your latest uploaded files and their status.</p>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-xs font-bold text-primary gap-1">
-                                View all <ArrowRight className="h-3 w-3" />
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="py-12 text-center">
-                        <div className="max-w-[280px] mx-auto space-y-4">
-                            <div className="h-16 w-16 bg-muted rounded-2xl flex items-center justify-center mx-auto">
-                                <FilePlus className="h-8 w-8 text-muted-foreground/30" />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="font-semibold text-foreground">No documents yet</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Ready to get started? Upload your first document for signing.
-                                </p>
-                            </div>
-                            <Button variant="outline" size="sm" className="font-semibold">
-                                Upload File
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                <DocumentList refreshTrigger={refreshKey} />
             </motion.div>
         </div>
     )
 }
 
 export default Dashboard
+
