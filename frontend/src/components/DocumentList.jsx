@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { getAllDocuments } from "@/api/document.api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { FileText, Clock, CheckCircle2, AlertCircle, Inbox } from "lucide-react"
 
 function DocumentList({ refreshTrigger }) {
+    const navigate = useNavigate()
     const [documents, setDocuments] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
@@ -131,7 +133,7 @@ function DocumentList({ refreshTrigger }) {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
                         >
-                            <Card className="group border-border/50 bg-card hover:border-primary/30 hover:shadow-md transition-all duration-300 overflow-hidden">
+                            <Card onClick={() => navigate(`/dashboard/documents/${doc.id}`)} className="group border-border/50 bg-card hover:border-primary/30 hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer active:scale-[0.98]">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-sm font-bold flex items-center gap-2 truncate">
                                         <FileText className="h-4 w-4 text-primary shrink-0" />

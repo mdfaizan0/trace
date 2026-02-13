@@ -12,6 +12,8 @@ const Home = lazy(() => import("./pages/Home"))
 const Login = lazy(() => import("./pages/Login"))
 const Register = lazy(() => import("./pages/Register"))
 const Dashboard = lazy(() => import("./pages/Dashboard"))
+const DocumentDetails = lazy(() => import("./pages/DocumentDetails"))
+const Documents = lazy(() => import("./pages/Documents"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
 /**
@@ -55,8 +57,12 @@ const router = createBrowserRouter([
                             },
                             // Add more dashboard sub-pages here
                             {
+                                path: "dashboard/documents/:id",
+                                element: <DocumentDetails />,
+                            },
+                            {
                                 path: "documents",
-                                element: <div className="p-8 text-center text-muted-foreground">Documents Page (Coming Soon)</div>,
+                                element: <Documents />,
                             },
                         ],
                     },

@@ -96,3 +96,171 @@ export async function getAllDocuments(req, res) {
         return res.status(500).json({ message: "Error fetching documents", error: error.message });
     }
 }
+
+export async function getDocumentById(req, res) {
+    try {
+        const { data: document, error } = await supabase
+            .from("documents")
+            .select("*")
+            .eq("id", req.params.id)
+            .eq("owner_id", req.user.id)
+            .single()
+
+        if (error) {
+            return res.status(500).json({ message: "Error fetching document", error: error.message });
+        }
+
+        if (!document) {
+            return res.status(404).json({ message: "Document not found" });
+        }
+
+        return res.status(200).json({
+            message: "Document fetched successfully",
+            document
+        });
+    } catch (error) {
+        console.error("Error fetching document:", error);
+        return res.status(500).json({ message: "Error fetching document", error: error.message });
+    }
+}
+
+export async function downloadOriginalDocument(req, res) {
+    try {
+        const { data: document, error } = await supabase
+            .from("documents")
+            .select("*")
+            .eq("id", req.params.id)
+            .eq("owner_id", req.user.id)
+            .single()
+
+        if (error) {
+            return res.status(500).json({ message: "Error fetching document", error: error.message });
+        }
+
+        if (!document) {
+            return res.status(404).json({ message: "Original document not found" });
+        }
+
+        const { data: file, error: fileError } = await supabase.storage
+            .from("documents")
+            .download(document.original_file_path)
+
+        if (fileError) {
+            return res.status(500).json({ message: "Error downloading original document", error: fileError.message });
+        }
+
+        await logAuditEvent({
+            documentId: document.id,
+            actorType: "internal",
+            actorRef: req.user.id,
+            action: "ORIGINAL_DOCUMENT_DOWNLOADED",
+            ipAddress: req.ip
+        })
+
+        const buffer = Buffer.from(await file.arrayBuffer())
+
+        res.set("Content-Type", "application/pdf");
+        res.set("Content-Disposition", `attachment; filename="${document.title}.pdf"`);
+        res.send(buffer);
+    } catch (error) {
+        console.error("Error downloading original document:", error);
+        return res.status(500).json({ message: "Error downloading original document", error: error.message });
+    }
+}
+
+export async function downloadSignedDocument(req, res) {
+    try {
+        const { data: document, error } = await supabase
+            .from("documents")
+            .select("*")
+            .eq("id", req.params.id)
+            .eq("owner_id", req.user.id)
+            .eq("status", "signed")
+            .single()
+
+        if (error) {
+            return res.status(500).json({ message: "Error fetching signed document", error: error.message });
+        }
+
+        if (!document) {
+            return res.status(404).json({ message: "Signed document not found" });
+        }
+
+        const { data: file, error: fileError } = await supabase.storage
+            .from("documents")
+            .download(document.signed_file_path)
+
+        if (fileError) {
+            return res.status(500).json({ message: "Error downloading document", error: fileError.message });
+        }
+
+        await logAuditEvent({
+            documentId: document.id,
+            actorType: "internal",
+            actorRef: req.user.id,
+            action: "SIGNED_DOCUMENT_DOWNLOADED",
+            ipAddress: req.ip
+        })
+
+        const buffer = Buffer.from(await file.arrayBuffer())
+
+        res.set("Content-Type", "application/pdf");
+        res.set("Content-Disposition", `attachment; filename="${document.title}.pdf"`);
+        res.send(buffer);
+    } catch (error) {
+        console.error("Error downloading signed document:", error);
+        return res.status(500).json({ message: "Error downloading signed document", error: error.message });
+    }
+}
+
+export async function deleteDocument(req, res) {
+    try {
+        const { data: document, error } = await supabase
+            .from("documents")
+            .select("*")
+            .eq("id", req.params.id)
+            .eq("owner_id", req.user.id)
+            .single()
+
+        if (error) {
+            return res.status(500).json({ message: "Error fetching document", error: error.message });
+        }
+
+        if (!document) {
+            return res.status(404).json({ message: "Document not found" });
+        }
+
+        const { error: deleteDocumentFromStorageError } = await supabase.storage
+            .from("documents")
+            .remove([document.original_file_path])
+
+        if (deleteDocumentFromStorageError) {
+            return res.status(500).json({ message: "Error deleting document from storage", error: deleteDocumentFromStorageError.message });
+        }
+
+        const { error: deleteDocumentError } = await supabase
+            .from("documents")
+            .delete()
+            .eq("id", req.params.id)
+            .eq("owner_id", req.user.id)
+
+        if (deleteDocumentError) {
+            return res.status(500).json({ message: "Error deleting document", error: deleteDocumentError.message });
+        }
+
+        await logAuditEvent({
+            documentId: document.id,
+            actorType: "internal",
+            actorRef: req.user.id,
+            action: "DOCUMENT_DELETED",
+            ipAddress: req.ip
+        })
+
+        return res.status(200).json({
+            message: "Document deleted successfully"
+        });
+    } catch (error) {
+        console.error("Error deleting document:", error);
+        return res.status(500).json({ message: "Error deleting document", error: error.message });
+    }
+}
