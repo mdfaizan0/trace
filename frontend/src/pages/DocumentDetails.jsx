@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
     FileText, ArrowLeft, CheckCircle2, Clock, AlertCircle,
     PenTool, Link2, Eye, FileQuestion, Hash, Calendar, Download, Trash2, Loader2,
-    MoreVertical
+    MoreVertical, X
 } from "lucide-react"
 import {
     AlertDialog,
@@ -31,6 +31,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import PdfViewer from "@/components/PdfViewer"
+import SignaturePlacer from "@/components/SignaturePlacer"
 
 function DocumentDetails() {
     const { id } = useParams()
@@ -40,6 +41,8 @@ function DocumentDetails() {
     const [error, setError] = useState("")
     const [downloading, setDownloading] = useState(false)
     const [deleting, setDeleting] = useState(false)
+    const [isSigning, setIsSigning] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
 
     useEffect(() => {
         const fetchDocument = async () => {
@@ -213,11 +216,12 @@ function DocumentDetails() {
                         {isPending && (
                             <Button
                                 size="sm"
-                                className="gap-2 font-semibold shadow-sm"
-                                disabled // Placeholder for future logic
+                                onClick={() => setIsSigning(!isSigning)}
+                                variant={isSigning ? "secondary" : "default"}
+                                className={`gap-2 font-semibold shadow-sm ${isSigning ? "bg-primary/20 text-primary hover:bg-primary/30" : ""}`}
                             >
-                                <PenTool className="h-4 w-4" />
-                                Sign Document
+                                {isSigning ? <X className="h-4 w-4" /> : <PenTool className="h-4 w-4" />}
+                                {isSigning ? "Cancel Signing" : "Sign Document"}
                             </Button>
                         )}
 
@@ -292,9 +296,28 @@ function DocumentDetails() {
                     </div>
                 )}
 
+                {isSigning && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+                        <div className="bg-primary/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-full shadow-lg backdrop-blur-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-4">
+                            <PenTool className="h-4 w-4" />
+                            Click anywhere to place signature
+                        </div>
+                    </div>
+                )}
+
                 <PdfViewer
                     fileUrl={`${import.meta.env.VITE_API_BASE_URL}/api/documents/${id}/download/${isSigned ? "signed" : "original"}`}
-                />
+                    onPageChange={setCurrentPage}
+                >
+                    {isSigning && isPending && (
+                        <SignaturePlacer
+                            documentId={id}
+                            pageNumber={currentPage}
+                            onSuccess={() => setIsSigning(false)}
+                            onCancel={() => setIsSigning(false)}
+                        />
+                    )}
+                </PdfViewer>
             </div>
         </motion.div>
     )

@@ -1,8 +1,10 @@
 import api from "./axios"
 
+
 export const createInternalSignature = async (payload) => {
     return api.post("/api/signatures", payload)
 }
+
 
 export const finalizeInternalSignature = async (payload) => {
     return api.post("/api/signatures/sign", payload)

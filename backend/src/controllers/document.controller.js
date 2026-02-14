@@ -20,6 +20,10 @@ export async function documentUpload(req, res) {
         return res.status(400).json({ message: "Invalid file type" })
     }
 
+    if (file.size > 1024 * 1024 * 20) {
+        return res.status(400).json({ message: "File size exceeds limit" })
+    }
+
     try {
         const fileHash = generateFileHash(file.buffer)
         const { data: existingDocument, error: existingDocumentError } = await supabase
