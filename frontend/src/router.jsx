@@ -13,6 +13,7 @@ const Login = lazy(() => import("./pages/Login"))
 const Register = lazy(() => import("./pages/Register"))
 const Dashboard = lazy(() => import("./pages/Dashboard"))
 const DocumentDetails = lazy(() => import("./pages/DocumentDetails"))
+const SignInternal = lazy(() => import("./pages/SignInternal"))
 const Documents = lazy(() => import("./pages/Documents"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
@@ -59,6 +60,10 @@ const router = createBrowserRouter([
                             {
                                 path: "dashboard/documents/:id",
                                 element: <DocumentDetails />,
+                            },
+                            {
+                                path: "dashboard/documents/:id/sign",
+                                element: <SignInternal />,
                             },
                             {
                                 path: "documents",

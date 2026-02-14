@@ -238,6 +238,16 @@ export async function deleteDocument(req, res) {
             .from("documents")
             .remove([document.original_file_path])
 
+        if (document.signed_file_path) {
+            const { error: deleteSignedDocumentFromStorageError } = await supabase.storage
+                .from("documents")
+                .remove([document.signed_file_path])
+
+            if (deleteSignedDocumentFromStorageError) {
+                return res.status(500).json({ message: "Error deleting signed document from storage", error: deleteSignedDocumentFromStorageError.message });
+            }
+        }
+
         if (deleteDocumentFromStorageError) {
             return res.status(500).json({ message: "Error deleting document from storage", error: deleteDocumentFromStorageError.message });
         }
@@ -257,7 +267,7 @@ export async function deleteDocument(req, res) {
             actorType: "internal",
             actorRef: req.user.id,
             action: "DOCUMENT_DELETED",
-            ipAddress: req.ip
+            ipAddress: req.headers["x-forwarded-for"] || req.ip
         })
 
         return res.status(200).json({

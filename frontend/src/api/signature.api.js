@@ -22,3 +22,11 @@ export const finalizePublicSignature = async (token, payload) => {
     // payload should include email and coordinates (x_percent, y_percent)
     return api.post(`/api/signatures/public/${token}/finalize`, payload)
 }
+
+export const getAllSignatures = async (documentId) => {
+    return api.get(`/api/signatures/${documentId}`)
+}
+
+export const deleteSignature = async (id) => {
+    return api.delete(`/api/signatures/${id}`)
+}

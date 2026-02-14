@@ -97,6 +97,14 @@ export async function createSignaturePlaceholder(req, res) {
             ipAddress: req.ip
         })
 
+        const { error: updatedDocumentError } = await supabase
+            .from("documents")
+            .update({ status: "ready_to_sign" })
+            .eq("id", documentId)
+        if (updatedDocumentError) {
+            return res.status(500).json({ message: "Failed to update document status", error: updatedDocumentError.message })
+        }
+
         return res.status(201).json({
             message: "Signature placeholder created",
             signature: {
@@ -133,8 +141,8 @@ export async function finalizeSignature(req, res) {
         if (!document) {
             return res.status(404).json({ message: "Document not found" })
         }
-        if (document.status !== "pending") {
-            return res.status(409).json({ message: "Document is not in pending state" })
+        if (document.status !== "ready_to_sign") {
+            return res.status(409).json({ message: "Document is not in ready to sign state" })
         }
         if (document.owner_id !== userId) {
             return res.status(403).json({ message: "Document not owned by user" })
@@ -166,7 +174,6 @@ export async function finalizeSignature(req, res) {
         if (signature.status !== "pending") {
             return res.status(409).json({ message: "Signature is already consumed" })
         }
-
 
         const { data: fileBlob, error: fileError } = await supabase.storage
             .from("documents")
@@ -317,6 +324,14 @@ export async function createPublicSignaturePlaceholder(req, res) {
             ipAddress: req.ip
         })
 
+        const { error: updatedDocumentError } = await supabase
+            .from("documents")
+            .update({ status: "ready_to_sign" })
+            .eq("id", documentId)
+        if (updatedDocumentError) {
+            return res.status(500).json({ message: "Failed to update document status" })
+        }
+
         return res.status(201).json({
             message: "Public signature placeholder created",
             signature: {
@@ -380,7 +395,7 @@ export async function getPublicSignature(req, res) {
         if (!document) {
             return res.status(404).json({ message: "Document not found" })
         }
-        if (document.status !== "pending") {
+        if (document.status !== "pending" && document.status !== "ready_to_sign") {
             return res.status(409).json({ message: "Document is no longer signable" })
         }
 
@@ -436,7 +451,7 @@ export async function finalizePublicSignature(req, res) {
         if (signature.signer_ref !== token) {
             return res.status(403).json({ message: "Signature not owned by user" })
         }
-        if (signature.status !== "pending") {
+        if (signature.status !== "ready_to_sign") {
             return res.status(409).json({ message: "Signature is already consumed" })
         }
 
@@ -517,5 +532,97 @@ export async function finalizePublicSignature(req, res) {
     } catch (error) {
         console.error("Error signing public document:", error);
         return res.status(500).json({ message: "Error signing public document", error: error.message });
+    }
+}
+
+export async function getAllSignatures(req, res) {
+    const { documentId } = req.params
+    const userId = req.user.id
+
+    if (!documentId) {
+        return res.status(400).json({ message: "Document ID is required" })
+    }
+
+    try {
+        const { data: signatures, error } = await supabase
+            .from("signatures")
+            .select("*")
+            .eq("document_id", documentId)
+            .eq("signer_ref", userId)
+            .maybeSingle()
+        if (error) {
+            return res.status(500).json({ message: "Error fetching signatures" })
+        }
+        if (!signatures) {
+            return res.status(404).json({ message: "Signatures not found" })
+        }
+
+        return res.status(200).json({
+            message: "Signatures fetched successfully",
+            signatures
+        })
+    } catch (error) {
+        console.error("Error fetching signatures:", error);
+        return res.status(500).json({ message: "Error fetching signatures", error: error.message });
+    }
+}
+
+export async function deleteSignature(req, res) {
+    const { id } = req.params
+    const userId = req.user.id
+
+    if (!id) {
+        return res.status(400).json({ message: "Signature ID is required" })
+    }
+
+    try {
+        const { data: signature, error: signatureError } = await supabase
+            .from("signatures")
+            .select("*")
+            .eq("id", id)
+            .eq("signer_ref", userId)
+            .maybeSingle()
+        if (signatureError) {
+            return res.status(500).json({ message: "Error fetching signature" })
+        }
+        if (!signature) {
+            return res.status(404).json({ message: "Signature not found" })
+        }
+        if (signature.status === "signed") {
+            return res.status(400).json({ message: "Signature is already consumed" })
+        }
+
+        const { error: deleteError } = await supabase
+            .from("signatures")
+            .delete()
+            .eq("id", id)
+        if (deleteError) {
+            return res.status(500).json({ message: "Error deleting signature" })
+        }
+
+        const { error: documentError } = await supabase
+            .from("documents")
+            .update({
+                status: "pending"
+            })
+            .eq("id", signature.document_id)
+        if (documentError) {
+            return res.status(500).json({ message: "Error updating document status" })
+        }
+
+        await logAuditEvent({
+            documentId: signature.document_id,
+            actorType: "internal",
+            actorRef: userId,
+            action: "SIGNATURE_DELETED",
+            ipAddress: req.ip
+        })
+
+        return res.status(200).json({
+            message: "Signature deleted successfully",
+        })
+    } catch (error) {
+        console.error("Error deleting signature:", error);
+        return res.status(500).json({ message: "Error deleting signature", error: error.message });
     }
 }

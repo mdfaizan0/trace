@@ -1,8 +1,9 @@
 // Document Details Page
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { getDocumentById, downloadOriginalDocument, downloadSignedDocument, triggerBlobDownload, deleteDocument } from "@/api/document.api"
+import { getAllSignatures, deleteSignature } from "@/api/signature.api"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,7 +12,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
     FileText, ArrowLeft, CheckCircle2, Clock, AlertCircle,
     PenTool, Link2, Eye, FileQuestion, Hash, Calendar, Download, Trash2, Loader2,
-    MoreVertical, X
+    MoreVertical, X,
+    ShieldCheck
 } from "lucide-react"
 import {
     AlertDialog,
@@ -30,13 +32,20 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 import PdfViewer from "@/components/PdfViewer"
 import SignaturePlacer from "@/components/SignaturePlacer"
+import SavedSignature from "@/components/SavedSignature"
 
 function DocumentDetails() {
     const { id } = useParams()
     const navigate = useNavigate()
     const [document, setDocument] = useState(null)
+    const [signature, setSignature] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [downloading, setDownloading] = useState(false)
@@ -48,17 +57,47 @@ function DocumentDetails() {
         const fetchDocument = async () => {
             try {
                 setLoading(true)
-                const response = await getDocumentById(id)
-                setDocument(response.document)
+                const [docRes, sigRes] = await Promise.all([
+                    getDocumentById(id),
+                    getAllSignatures(id).catch(() => ({ signatures: null })) // Ignore 404 for signatures
+                ])
+
+                setDocument(docRes.document)
+                setSignature(sigRes.signatures)
                 setError("")
             } catch (err) {
-                setError(err.message || "Failed to fetch document")
+                setError(err.message || "Failed to fetch document details")
             } finally {
                 setLoading(false)
             }
         }
         fetchDocument()
     }, [id])
+
+    const refreshSignature = async () => {
+        try {
+            const res = await getAllSignatures(id)
+            setSignature(res.signatures)
+            setIsSigning(false)
+        } catch (err) {
+            console.error("Failed to refresh signature", err)
+            setSignature(null) // Clear if failed/not found
+        }
+    }
+
+    const handleDeleteSignature = async () => {
+        if (!signature?.id) return
+        try {
+            setDeleting(true)
+            await deleteSignature(signature.id)
+            await refreshSignature()
+        } catch (err) {
+            console.error("Failed to delete signature", err)
+            setError(err.message || "Failed to delete signature")
+        } finally {
+            setDeleting(false)
+        }
+    }
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString(undefined, {
@@ -77,6 +116,13 @@ function DocumentDetails() {
                     <Badge className="text-sm font-semibold bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 px-3 py-1">
                         <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
                         Signed
+                    </Badge>
+                )
+            case "ready_to_sign":
+                return (
+                    <Badge className="text-sm font-semibold bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20 px-3 py-1">
+                        <PenTool className="h-3.5 w-3.5 mr-1.5" />
+                        Ready to Sign
                     </Badge>
                 )
             case "pending":
@@ -162,6 +208,7 @@ function DocumentDetails() {
     if (!document) return null
 
     const isPending = document.status?.toLowerCase() === "pending"
+    const isReadyToSign = document.status?.toLowerCase() === "ready_to_sign"
     const isSigned = document.status?.toLowerCase() === "signed"
 
     return (
@@ -211,60 +258,154 @@ function DocumentDetails() {
                     </div>
 
                     {/* Right: Actions Toolbar */}
-                    <div className="flex items-center gap-2 self-start lg:mt-6">
-                        {/* Primary Actions */}
-                        {isPending && (
-                            <Button
-                                size="sm"
-                                onClick={() => setIsSigning(!isSigning)}
-                                variant={isSigning ? "secondary" : "default"}
-                                className={`gap-2 font-semibold shadow-sm ${isSigning ? "bg-primary/20 text-primary hover:bg-primary/30" : ""}`}
-                            >
-                                {isSigning ? <X className="h-4 w-4" /> : <PenTool className="h-4 w-4" />}
-                                {isSigning ? "Cancel Signing" : "Sign Document"}
-                            </Button>
+                    <div className="flex flex-col sm:flex-row items-center gap-4 self-center lg:self-start lg:mt-6">
+                        {/* 1. Signature Actions Pod */}
+                        {(isPending || isReadyToSign) && (
+                            <div className="relative flex items-center gap-1.5 bg-indigo-50/50 dark:bg-indigo-500/5 p-2 pt-6 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10 shadow-sm transition-all duration-300">
+                                <span className="absolute top-1.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider text-indigo-400/80 pointer-events-none">
+                                    {document.status?.toLowerCase() === "ready_to_sign" ? "Signature" : "Sign"}
+                                </span>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size="sm"
+                                            onClick={() => setIsSigning(!isSigning)}
+                                            variant={isSigning ? "secondary" : "default"}
+                                            className={`h-8 gap-2 font-semibold transition-all ${isSigning ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}
+                                        >
+                                            {isSigning ? <X className="h-4 w-4" /> : <PenTool className="h-4 w-4" />}
+                                            <span className="hidden xs:inline">
+                                                {isSigning ? "Cancel" : (signature ? "Relocate" : "Place")}
+                                            </span>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        <p>{isSigning ? "Stop placing signature" : (signature ? "Change signature position" : "Start placing signature")}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+
+                                {isReadyToSign && (
+                                    <>
+                                        <div className="w-px h-4 bg-indigo-200/50 dark:bg-indigo-500/20 mx-1"></div>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => navigate(`/dashboard/documents/${id}/sign`)}
+                                                    className="h-8 gap-2 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all"
+                                                >
+                                                    <ShieldCheck className="h-4 w-4" />
+                                                    <span className="hidden xs:inline">Finalize</span>
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">
+                                                <p>Finalize signature</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+
+                                        <AlertDialog>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            disabled={deleting}
+                                                            className="h-8 w-8 p-0 text-indigo-400 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                            title="Delete Signature Placeholder"
+                                                        >
+                                                            {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                    <p>Remove current signature placement</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Remove signature placeholder?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This will remove the current signature placement. You'll need to place it again before you can finalize the document.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleDeleteSignature} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                        Remove
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </>
+                                )}
+                            </div>
                         )}
 
-                        {isSigned && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDownload("signed")}
-                                disabled={downloading}
-                                className="gap-2 font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/50"
-                            >
-                                {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                Download Signed
-                            </Button>
-                        )}
+                        {/* 2. Document Actions Pod */}
+                        <div className="relative flex items-center gap-1.5 bg-card/80 backdrop-blur-sm p-2 pt-6 rounded-xl border border-border/60 shadow-sm">
+                            <span className="absolute top-1.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider text-indigo-400/80 pointer-events-none">
+                                Document
+                            </span>
+                            {isSigned ? (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => handleDownload("signed")}
+                                            disabled={downloading}
+                                            className="h-8 gap-2 font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/5 px-3"
+                                        >
+                                            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                            Download Signed
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        <p>Download the finalized document with signatures</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => handleDownload("original")}
+                                            disabled={downloading}
+                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                            title="Download Original"
+                                        >
+                                            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        <p>Download original file</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
 
-                        {/* Secondary Actions Menu (Mobile/Desktop) */}
-                        <div className="flex items-center gap-1 bg-card border border-border/60 p-1 rounded-lg shadow-sm">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDownload("original")}
-                                disabled={downloading}
-                                className="h-8 px-2.5 text-muted-foreground hover:text-foreground"
-                                title="Download Original"
-                            >
-                                {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                            </Button>
-
-                            <div className="w-px h-4 bg-border/60 mx-0.5"></div>
+                            <div className="w-px h-4 bg-border/60 mx-1"></div>
 
                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={deleting}
-                                        className="h-8 px-2.5 text-muted-foreground hover:text-destructive transition-colors"
-                                        title="Delete Document"
-                                    >
-                                        {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                    </Button>
-                                </AlertDialogTrigger>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                disabled={deleting}
+                                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                title="Delete Document"
+                                            >
+                                                {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                        <p>Permanently delete this document</p>
+                                    </TooltipContent>
+                                </Tooltip>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Delete document?</AlertDialogTitle>
@@ -309,13 +450,22 @@ function DocumentDetails() {
                     fileUrl={`${import.meta.env.VITE_API_BASE_URL}/api/documents/${id}/download/${isSigned ? "signed" : "original"}`}
                     onPageChange={setCurrentPage}
                 >
+                    {/* 1. Placement Mode */}
                     {isSigning && isPending && (
                         <SignaturePlacer
                             documentId={id}
                             pageNumber={currentPage}
-                            onSuccess={() => setIsSigning(false)}
+                            onSuccess={refreshSignature}
                             onCancel={() => setIsSigning(false)}
                         />
+                    )}
+
+                    {/* 2. Visualizing Saved Signature (if not signing, or even if signing but on other pages?) */}
+                    {/* We show it if it exists and matches current page */}
+                    {!isSigning && signature && signature.status === "pending" && signature.page_number === currentPage && (
+                        <div className="absolute inset-0 z-30 pointer-events-none">
+                            <SavedSignature signature={signature} />
+                        </div>
                     )}
                 </PdfViewer>
             </div>
