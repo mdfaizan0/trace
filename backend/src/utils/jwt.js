@@ -4,7 +4,7 @@ import dotenv from "dotenv"
 dotenv.config()
 
 export function generateToken(user) {
-    return jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" })
+    return jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "4h" })
 }
 
 export function verifyToken(token) {

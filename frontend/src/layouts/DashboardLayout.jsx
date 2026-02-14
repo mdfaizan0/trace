@@ -22,7 +22,6 @@ const NAV_ITEMS = [
 
 function DashboardLayout() {
     const [user, setUser] = useState(null)
-    console.log("user", user)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const navigate = useNavigate()
     const location = useLocation()

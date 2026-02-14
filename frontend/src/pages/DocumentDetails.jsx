@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react"
+// Document Details Page
+import { useState, useEffect, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { getDocumentById, downloadOriginalDocument, downloadSignedDocument, triggerBlobDownload, deleteDocument } from "@/api/document.api"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
     FileText, ArrowLeft, CheckCircle2, Clock, AlertCircle,
-    PenTool, Link2, Eye, FileQuestion, Hash, Calendar, Download, Trash2, Loader2
+    PenTool, Link2, Eye, FileQuestion, Hash, Calendar, Download, Trash2, Loader2,
+    MoreVertical
 } from "lucide-react"
 import {
     AlertDialog,
@@ -23,6 +24,13 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import PdfViewer from "@/components/PdfViewer"
 
 function DocumentDetails() {
     const { id } = useParams()
@@ -84,34 +92,46 @@ function DocumentDetails() {
         }
     }
 
+    const handleDownload = async (variant = "original") => {
+        try {
+            setDownloading(true)
+            const blob = variant === "signed"
+                ? await downloadSignedDocument(id)
+                : await downloadOriginalDocument(id)
+            const suffix = variant === "signed" ? "_signed" : ""
+            triggerBlobDownload(blob, `${document?.title || "document"}${suffix}.pdf`)
+        } catch (err) {
+            setError(err.message || "Failed to download document")
+        } finally {
+            setDownloading(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        try {
+            setDeleting(true)
+            await deleteDocument(id)
+            navigate("/dashboard")
+        } catch (err) {
+            setError(err.message || "Failed to delete document")
+            setDeleting(false)
+        }
+    }
+
     if (loading) {
         return (
-            <div className="space-y-8">
-                <div className="flex items-center gap-3">
-                    <Skeleton className="h-9 w-9 rounded-lg" />
-                    <Skeleton className="h-8 w-64" />
+            <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between gap-4">
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-64" />
+                        <Skeleton className="h-4 w-48" />
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-10 w-32" />
+                        <Skeleton className="h-10 w-10" />
+                    </div>
                 </div>
-                <Card className="border-border/50">
-                    <CardHeader>
-                        <Skeleton className="h-6 w-48" />
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {[1, 2, 3, 4].map((i) => (
-                                <div key={i} className="space-y-2">
-                                    <Skeleton className="h-3 w-20" />
-                                    <Skeleton className="h-5 w-40" />
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="border-border/50">
-                    <CardContent className="pt-6 flex gap-3">
-                        <Skeleton className="h-10 w-40" />
-                        <Skeleton className="h-10 w-44" />
-                    </CardContent>
-                </Card>
+                <Skeleton className="h-[600px] w-full rounded-xl" />
             </div>
         )
     }
@@ -136,236 +156,146 @@ function DocumentDetails() {
         )
     }
 
-    if (!document) {
-        return (
-            <div className="space-y-6">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate("/dashboard")}
-                    className="gap-1.5 text-muted-foreground hover:text-foreground font-semibold"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Dashboard
-                </Button>
-                <div className="flex flex-col items-center justify-center p-16 rounded-2xl border-2 border-dashed border-border/40 bg-muted/20 text-center">
-                    <div className="h-16 w-16 rounded-full bg-background border border-border flex items-center justify-center mb-4 shadow-sm">
-                        <FileQuestion className="h-8 w-8 text-muted-foreground/30" />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground">Document not found</h3>
-                    <p className="text-sm text-muted-foreground mt-1 max-w-[280px]">
-                        This document may have been removed or you don't have access to it.
-                    </p>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate("/dashboard")}
-                        className="mt-6 font-semibold"
-                    >
-                        Go to Dashboard
-                    </Button>
-                </div>
-            </div>
-        )
-    }
+    if (!document) return null
 
     const isPending = document.status?.toLowerCase() === "pending"
     const isSigned = document.status?.toLowerCase() === "signed"
-
-    const handleDownload = async (variant = "original") => {
-        try {
-            setDownloading(true)
-            const blob = variant === "signed"
-                ? await downloadSignedDocument(id)
-                : await downloadOriginalDocument(id)
-            const suffix = variant === "signed" ? "_signed" : ""
-            triggerBlobDownload(blob, `${document.title}${suffix}.pdf`)
-        } catch (err) {
-            setError(err.message || "Failed to download document")
-        } finally {
-            setDownloading(false)
-        }
-    }
-
-    const handleDelete = async () => {
-        try {
-            setDeleting(true)
-            await deleteDocument(id)
-            navigate("/dashboard")
-        } catch (err) {
-            setError(err.message || "Failed to delete document")
-            setDeleting(false)
-        }
-    }
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-8"
+            className="space-y-6"
         >
-            {/* Header */}
-            <div className="space-y-4">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate("/dashboard")}
-                    className="gap-1.5 text-muted-foreground hover:text-foreground font-semibold -ml-2"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Dashboard
-                </Button>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                            <FileText className="h-5 w-5 text-primary" />
+            {/* Consolidated Header */}
+            <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                    {/* Left: Title & Meta */}
+                    <div className="space-y-3 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate("/dashboard")}
+                                className="gap-1 px-0 h-6 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                                Back
+                            </Button>
                         </div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground truncate">
-                            {document.title}
-                        </h1>
+
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-bold tracking-tight text-foreground truncate">
+                                {document.title}
+                            </h1>
+                            {getStatusBadge(document.status)}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                                <Calendar className="h-3.5 w-3.5" />
+                                <span>{formatDate(document.created_at)}</span>
+                            </div>
+                            {document.file_hash && (
+                                <div className="flex items-center gap-1.5" title={document.file_hash}>
+                                    <Hash className="h-3.5 w-3.5" />
+                                    <span className="font-mono text-xs bg-muted/50 px-1.5 py-0.5 rounded">
+                                        {document.file_hash.substring(0, 12)}...
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    {getStatusBadge(document.status)}
+
+                    {/* Right: Actions Toolbar */}
+                    <div className="flex items-center gap-2 self-start lg:mt-6">
+                        {/* Primary Actions */}
+                        {isPending && (
+                            <Button
+                                size="sm"
+                                className="gap-2 font-semibold shadow-sm"
+                                disabled // Placeholder for future logic
+                            >
+                                <PenTool className="h-4 w-4" />
+                                Sign Document
+                            </Button>
+                        )}
+
+                        {isSigned && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDownload("signed")}
+                                disabled={downloading}
+                                className="gap-2 font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/50"
+                            >
+                                {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                Download Signed
+                            </Button>
+                        )}
+
+                        {/* Secondary Actions Menu (Mobile/Desktop) */}
+                        <div className="flex items-center gap-1 bg-card border border-border/60 p-1 rounded-lg shadow-sm">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDownload("original")}
+                                disabled={downloading}
+                                className="h-8 px-2.5 text-muted-foreground hover:text-foreground"
+                                title="Download Original"
+                            >
+                                {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                            </Button>
+
+                            <div className="w-px h-4 bg-border/60 mx-0.5"></div>
+
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={deleting}
+                                        className="h-8 px-2.5 text-muted-foreground hover:text-destructive transition-colors"
+                                        title="Delete Document"
+                                    >
+                                        {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete document?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will permanently delete <span className="font-semibold text-foreground">"{document.title}"</span>. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                            Delete
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Metadata Card */}
-            <Card className="border-border/50 bg-card">
-                <CardHeader className="pb-4">
-                    <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground/70">
-                        Document Information
-                    </CardTitle>
-                </CardHeader>
-                <Separator className="mb-0" />
-                <CardContent className="pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-1.5">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                                <FileText className="h-3 w-3" />
-                                Title
-                            </div>
-                            <p className="text-sm font-semibold text-foreground">{document.title}</p>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                                <Clock className="h-3 w-3" />
-                                Status
-                            </div>
-                            <div>{getStatusBadge(document.status)}</div>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                                <Calendar className="h-3 w-3" />
-                                Created
-                            </div>
-                            <p className="text-sm font-medium text-foreground">{formatDate(document.created_at)}</p>
-                        </div>
-
-                        {document.file_hash && (
-                            <div className="space-y-1.5">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                                    <Hash className="h-3 w-3" />
-                                    File Hash
-                                </div>
-                                <p className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-md w-fit">
-                                    {document.file_hash.substring(0, 16)}…
-                                </p>
-                            </div>
-                        )}
-
-                        {document.signed_file_path && (
-                            <div className="space-y-1.5">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                                    <CheckCircle2 className="h-3 w-3" />
-                                    Signed File
-                                </div>
-                                <p className="text-sm font-medium text-emerald-600">Available</p>
-                            </div>
-                        )}
+            {/* PDF Viewer Area */}
+            <div className="group relative">
+                {/* Visual indicator for signed version */}
+                {isSigned && (
+                    <div className="absolute top-4 right-6 z-10 pointer-events-none">
+                        <Badge variant="outline" className="bg-emerald-500/90 text-white border-transparent shadow-sm backdrop-blur-sm">
+                            Verified Signed PDF
+                        </Badge>
                     </div>
-                </CardContent>
-            </Card>
+                )}
 
-            {/* Actions Card */}
-            <Card className="border-border/50 bg-card">
-                <CardHeader className="pb-4">
-                    <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground/70">
-                        Actions
-                    </CardTitle>
-                </CardHeader>
-                <Separator className="mb-0" />
-                <CardContent className="pt-6">
-                    <div className="flex flex-wrap gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={() => handleDownload("original")}
-                            disabled={downloading}
-                            className="gap-2 font-semibold"
-                        >
-                            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                            {downloading ? "Downloading..." : "Download Original"}
-                        </Button>
-                        {isPending && (
-                            <>
-                                <Button disabled className="gap-2 font-semibold">
-                                    <PenTool className="h-4 w-4" />
-                                    Place Signature
-                                </Button>
-                                <Button variant="outline" disabled className="gap-2 font-semibold">
-                                    <Link2 className="h-4 w-4" />
-                                    Generate Public Link
-                                </Button>
-                            </>
-                        )}
-                        {isSigned && (
-                            <>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => handleDownload("signed")}
-                                    disabled={downloading}
-                                    className="gap-2 font-semibold"
-                                >
-                                    {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-                                    Download Signed PDF
-                                </Button>
-                                <Button disabled variant="ghost" className="gap-2 font-semibold text-muted-foreground">
-                                    <PenTool className="h-4 w-4" />
-                                    Already Signed
-                                </Button>
-                            </>
-                        )}
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    disabled={deleting}
-                                    className="gap-2 font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
-                                >
-                                    {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                    {deleting ? "Deleting..." : "Delete"}
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the document
-                                        <span className="font-semibold text-foreground"> "{document.title}" </span>
-                                        and remove it from our servers.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                        Delete
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                </CardContent>
-            </Card>
+                <PdfViewer
+                    fileUrl={`${import.meta.env.VITE_API_BASE_URL}/api/documents/${id}/download/${isSigned ? "signed" : "original"}`}
+                />
+            </div>
         </motion.div>
     )
 }
