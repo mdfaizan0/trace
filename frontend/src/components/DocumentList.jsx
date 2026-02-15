@@ -149,11 +149,10 @@ function DocumentList({ refreshTrigger }) {
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs text-muted-foreground">Status</span>
+                                        <div className="text-[11px] text-muted-foreground/60 font-medium">
+                                            {formatDate(doc.created_at)}
+                                        </div>
                                         {getStatusBadge(doc.status)}
-                                    </div>
-                                    <div className="text-[11px] text-muted-foreground/60 font-medium">
-                                        {formatDate(doc.created_at)}
                                     </div>
                                 </CardContent>
                             </Card>

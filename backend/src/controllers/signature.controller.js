@@ -614,7 +614,7 @@ export async function deleteSignature(req, res) {
             documentId: signature.document_id,
             actorType: "internal",
             actorRef: userId,
-            action: "SIGNATURE_DELETED",
+            action: "SIGNATURE_PLACEHOLDER_DELETED",
             ipAddress: req.ip
         })
 

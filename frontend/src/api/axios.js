@@ -35,6 +35,12 @@ api.interceptors.response.use(
             status: error.response?.status || 500,
             data: error.response?.data,
         }
+        
+        if (normalizedError.status === 401) {
+            localStorage.removeItem("trace_token")
+            localStorage.removeItem("trace_user")
+            window.location.href = "/login"
+        }
 
         if (error.response?.data?.message) {
             normalizedError.message = error.response.data.message

@@ -78,10 +78,21 @@ function DocumentDetails() {
         try {
             const res = await getAllSignatures(id)
             setSignature(res.signatures)
+            await refreshDocument()
             setIsSigning(false)
         } catch (err) {
             console.error("Failed to refresh signature", err)
             setSignature(null) // Clear if failed/not found
+        }
+    }
+
+    const refreshDocument = async () => {
+        try {
+            const res = await getDocumentById(id)
+            setDocument(res.document)
+            setError("")
+        } catch (err) {
+            setError(err.message || "Failed to fetch document details")
         }
     }
 
@@ -91,6 +102,7 @@ function DocumentDetails() {
             setDeleting(true)
             await deleteSignature(signature.id)
             await refreshSignature()
+            await refreshDocument()
         } catch (err) {
             console.error("Failed to delete signature", err)
             setError(err.message || "Failed to delete signature")
@@ -312,14 +324,13 @@ function DocumentDetails() {
                                                             size="sm"
                                                             disabled={deleting}
                                                             className="h-8 w-8 p-0 text-indigo-400 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                                            title="Delete Signature Placeholder"
                                                         >
                                                             {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                                                         </Button>
                                                     </AlertDialogTrigger>
                                                 </TooltipTrigger>
                                                 <TooltipContent side="top">
-                                                    <p>Remove current signature placement</p>
+                                                    <p>Remove current signature placeholder</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                             <AlertDialogContent>
@@ -447,7 +458,7 @@ function DocumentDetails() {
                 )}
 
                 <PdfViewer
-                    fileUrl={`${import.meta.env.VITE_API_BASE_URL}/api/documents/${id}/download/${isSigned ? "signed" : "original"}`}
+                    fileUrl={`${import.meta.env.VITE_API_BASE_URL}/api/documents/${id}/download/${isSigned ? "signed" : "original"}?action=preview`}
                     onPageChange={setCurrentPage}
                 >
                     {/* 1. Placement Mode */}

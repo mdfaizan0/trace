@@ -19,6 +19,18 @@ export const getDocumentById = async (id) => {
     return api.get(`/api/documents/${id}`)
 }
 
+export const getOriginalDocument = async (id) => {
+    return api.get(`/api/documents/${id}/download/original?action=preview`, {
+        responseType: "blob"
+    })
+}
+
+export const getSignedDocument = async (id) => {
+    return api.get(`/api/documents/${id}/download/signed?action=preview`, {
+        responseType: "blob"
+    })
+}
+
 export const downloadOriginalDocument = async (id) => {
     return api.get(`/api/documents/${id}/download/original`, {
         responseType: "blob"

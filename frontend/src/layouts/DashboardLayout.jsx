@@ -11,9 +11,21 @@ import {
     Menu,
     X,
     Bell,
-    User
+    User,
+    Sun,
+    Moon
 } from "lucide-react"
-import { getMyProfile } from "@/api/auth.api"
+import { getMyProfile, logout } from "@/api/auth.api"
+import { useTheme } from "@/hooks/theme/useTheme"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const NAV_ITEMS = [
     { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -23,13 +35,12 @@ const NAV_ITEMS = [
 function DashboardLayout() {
     const [user, setUser] = useState(null)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const { theme, toggleTheme } = useTheme()
     const navigate = useNavigate()
     const location = useLocation()
 
     const handleLogout = () => {
-        localStorage.removeItem("trace_token")
-        localStorage.removeItem("user")
-        navigate("/login")
+        logout(navigate)
     }
 
     useEffect(() => {
@@ -42,7 +53,7 @@ function DashboardLayout() {
             const data = await getMyProfile()
             if (data) {
                 setUser(data.user)
-                localStorage.setItem("user", JSON.stringify(data.user))
+                localStorage.setItem("trace_user", JSON.stringify(data.user))
             }
         }
         getUser()
@@ -141,25 +152,80 @@ function DashboardLayout() {
                         >
                             <Menu className="h-5 w-5" />
                         </Button>
-                        <h2 className="text-sm font-semibold tracking-tight text-foreground sm:text-base">
+                        <h2 className="text-sm font-semibold tracking-tight text-foreground/90 sm:text-base">
                             {NAV_ITEMS.find(item => isActive(item.href))?.label || "Dashboard"}
                         </h2>
                     </div>
 
-                    <div className="flex items-center gap-2 md:gap-4">
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                            <Bell className="h-5 w-5" />
-                        </Button>
-                        <Separator orientation="vertical" className="h-6 mx-1 md:mx-2 hidden sm:block" />
-                        <div className="flex items-center gap-2 pl-2">
-                            <div className="hidden md:block text-right">
-                                <p className="text-xs font-semibold text-foreground leading-none">{user?.name || "User"}</p>
-                                <p className="text-[10px] text-muted-foreground mt-1">Free Plan</p>
-                            </div>
-                            <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground overflow-hidden">
-                                <User className="h-4 w-4" />
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-secondary hover:bg-white/10 hover:backdrop-blur-sm transition-all duration-300 rounded-full h-10 w-10 border border-transparent hover:border-white/20">
+                                    <Bell className="h-[1.15rem] w-[1.15rem]" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent sideOffset={8}>
+                                <p>Notifications</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-muted-foreground hover:text-secondary hover:bg-white/10 hover:backdrop-blur-sm transition-all duration-300 rounded-full h-10 w-10 border border-transparent hover:border-white/20"
+                                    onClick={toggleTheme}
+                                >
+                                    {theme === "dark" ? <Sun className="h-[1.15rem] w-[1.15rem]" /> : <Moon className="h-[1.15rem] w-[1.15rem]" />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent sideOffset={8}>
+                                <p>{theme === "dark" ? "Light Mode" : "Dark Mode"}</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Separator orientation="vertical" className="h-5 mx-1 hidden sm:block opacity-30" />
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="flex items-center gap-2.5 p-2 h-10 rounded-full hover:bg-accent/20 transition-all border border-transparent hover:border-border/40 group">
+                                    <div className="hidden md:block text-right px-1">
+                                        <p className="text-[13px] font-medium text-foreground/90 leading-none group-hover:text-foreground transition-colors">{user?.name || "User"}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-1 font-medium tracking-wide">FREE PLAN</p>
+                                    </div>
+                                    <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs group-hover:shadow-xs transition-shadow overflow-hidden">
+                                        {user?.name ? (
+                                            <span className="text-xs font-bold uppercase tracking-tighter">{user.name.charAt(0)}</span>
+                                        ) : (
+                                            <User className="h-3.5 w-3.5" />
+                                        )}
+                                    </div>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56 mt-2 shadow-lg border-border/40">
+                                <DropdownMenuLabel className="font-normal p-3">
+                                    <div className="flex flex-col space-y-1.5">
+                                        <p className="text-sm font-semibold leading-none">{user?.name || "User"}</p>
+                                        <p className="text-[11px] leading-none text-muted-foreground truncate opacity-80">{user?.email || "user@example.com"}</p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator className="opacity-50" />
+                                <DropdownMenuItem className="cursor-pointer py-2.5">
+                                    <User className="mr-2.5 h-4 w-4 opacity-70" />
+                                    <span className="text-xs font-medium">Profile Settings</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer py-2.5">
+                                    <Bell className="mr-2.5 h-4 w-4 opacity-70" />
+                                    <span className="text-xs font-medium">Notifications</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="opacity-50" />
+                                <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive py-2.5" onClick={handleLogout}>
+                                    <LogOut className="mr-2.5 h-4 w-4 opacity-70" />
+                                    <span className="text-xs font-semibold">Log out</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </header>
 

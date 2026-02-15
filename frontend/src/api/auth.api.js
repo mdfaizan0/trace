@@ -11,3 +11,9 @@ export const signin = async (payload) => {
 export const getMyProfile = async () => {
     return api.get("/api/auth/me")
 }
+
+export const logout = (navigate) => {
+    localStorage.removeItem("trace_token")
+    localStorage.removeItem("trace_user")
+    navigate("/login")
+}

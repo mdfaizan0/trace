@@ -129,6 +129,7 @@ export async function getDocumentById(req, res) {
 }
 
 export async function downloadOriginalDocument(req, res) {
+    const { action } = req.query
     try {
         const { data: document, error } = await supabase
             .from("documents")
@@ -153,13 +154,15 @@ export async function downloadOriginalDocument(req, res) {
             return res.status(500).json({ message: "Error downloading original document", error: fileError.message });
         }
 
-        await logAuditEvent({
-            documentId: document.id,
-            actorType: "internal",
-            actorRef: req.user.id,
-            action: "ORIGINAL_DOCUMENT_DOWNLOADED",
-            ipAddress: req.ip
-        })
+        if (action !== "preview") {
+            await logAuditEvent({
+                documentId: document.id,
+                actorType: "internal",
+                actorRef: req.user.id,
+                action: "ORIGINAL_DOCUMENT_DOWNLOADED",
+                ipAddress: req.ip
+            })
+        }
 
         const buffer = Buffer.from(await file.arrayBuffer())
 
@@ -173,6 +176,7 @@ export async function downloadOriginalDocument(req, res) {
 }
 
 export async function downloadSignedDocument(req, res) {
+    const { action } = req.query
     try {
         const { data: document, error } = await supabase
             .from("documents")
@@ -198,13 +202,15 @@ export async function downloadSignedDocument(req, res) {
             return res.status(500).json({ message: "Error downloading document", error: fileError.message });
         }
 
-        await logAuditEvent({
-            documentId: document.id,
-            actorType: "internal",
-            actorRef: req.user.id,
-            action: "SIGNED_DOCUMENT_DOWNLOADED",
-            ipAddress: req.ip
-        })
+        if (action !== "preview") {
+            await logAuditEvent({
+                documentId: document.id,
+                actorType: "internal",
+                actorRef: req.user.id,
+                action: "SIGNED_DOCUMENT_DOWNLOADED",
+                ipAddress: req.ip
+            })
+        }
 
         const buffer = Buffer.from(await file.arrayBuffer())
 

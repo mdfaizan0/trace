@@ -7,7 +7,7 @@ export async function generateSignedPdf(pdfBuffer, signature) {
     const { width, height } = page.getSize()
 
     const x = (signature.x_percent / 100) * width
-    const y = height - ((signature.y_percent / 100) * height) - 40
+    const y = height - ((signature.y_percent / 100) * height)
 
     page.drawText("Signed", {
         x,
