@@ -2,11 +2,11 @@ import { useRef, useState } from "react"
 import { DndContext, useDraggable, useSensor, useSensors, PointerSensor } from "@dnd-kit/core"
 import { restrictToParentElement } from "@dnd-kit/modifiers"
 import { Button } from "@/components/ui/button"
-import { Save, Loader2, X } from "lucide-react"
-import { createInternalSignature } from "../api/signature.api"
+import { Save, Loader2, X, UserSearch } from "lucide-react"
+import { createInternalSignature, createPublicSignature } from "../api/signature.api"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-function DraggableSignature({ position, isSaving, onSave, onCancel }) {
+function DraggableSignature({ position, isSaving, onSave, onCancel, signerEmail }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: "signature-placeholder",
     })
@@ -63,21 +63,29 @@ function DraggableSignature({ position, isSaving, onSave, onCancel }) {
 
             {/* Signature Box */}
             <div className={`
-                w-48 h-16 border-2 border-dashed rounded-md flex items-center justify-center 
+                w-48 h-16 border-2 border-dashed rounded-md flex flex-col items-center justify-center 
                 transition-all duration-200 cursor-move shadow-sm
-                ${isDragging ? "border-primary bg-primary/10 scale-105 shadow-xl ring-2 ring-primary/20" : "border-primary/60 bg-white/50 hover:border-primary hover:bg-primary/5"}
+                ${isDragging
+                    ? (signerEmail ? "border-amber-500 bg-amber-500/10 scale-105 shadow-xl ring-2 ring-amber-500/20" : "border-primary bg-primary/10 scale-105 shadow-xl ring-2 ring-primary/20")
+                    : (signerEmail ? "border-amber-500/60 bg-white/50 hover:border-amber-500 hover:bg-amber-500/5" : "border-primary/60 bg-white/50 hover:border-primary hover:bg-primary/5")
+                }
                 ${isSaving ? "opacity-50 pointer-events-none" : ""}
             `}>
-                <span className="text-sm font-medium text-primary/80 select-none flex items-center gap-2">
-                    <Save className="h-4 w-4 opacity-50" />
-                    Sign Here
+                <span className={`text-sm font-bold select-none flex items-center gap-2 ${signerEmail ? "text-amber-600" : "text-primary/80"}`}>
+                    {signerEmail ? <UserSearch className="h-4 w-4" /> : <Save className="h-4 w-4 opacity-50" />}
+                    {signerEmail ? "Signer Here" : "Sign Here"}
                 </span>
+                {signerEmail && (
+                    <span className="text-[10px] font-medium text-amber-500/80 truncate max-w-full px-2">
+                        For: {signerEmail}
+                    </span>
+                )}
             </div>
         </div>
     )
 }
 
-export default function SignaturePlacer({ documentId, pageNumber, onSuccess, onCancel }) {
+export default function SignaturePlacer({ documentId, pageNumber, onSuccess, onCancel, signerEmail }) {
     const [position, setPosition] = useState(null) // { x: 0, y: 0 } relative to container
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState(null)
@@ -140,12 +148,22 @@ export default function SignaturePlacer({ documentId, pageNumber, onSuccess, onC
         const yPercent = (position.y / containerRect.height) * 100
 
         try {
-            await createInternalSignature({
-                documentId,
-                pageNumber,
-                xPercent,
-                yPercent
-            })
+            if (signerEmail) {
+                await createPublicSignature({
+                    documentId,
+                    pageNumber,
+                    xPercent,
+                    yPercent,
+                    signerEmail
+                })
+            } else {
+                await createInternalSignature({
+                    documentId,
+                    pageNumber,
+                    xPercent,
+                    yPercent
+                })
+            }
             if (onSuccess) onSuccess()
         } catch (err) {
             console.error(err)
@@ -170,7 +188,7 @@ export default function SignaturePlacer({ documentId, pageNumber, onSuccess, onC
                 <div
                     className="absolute inset-0 z-50 cursor-crosshair hover:bg-primary/5 transition-colors"
                     onClick={handleInitialClick}
-                    title="Click to place signature"
+                    title={signerEmail ? `Click to place signature for ${signerEmail}` : "Click to place your signature"}
                 >
                     {/* Optional: Follow cursor with ghost preview? For now, just crosshair. */}
                 </div>
@@ -187,6 +205,7 @@ export default function SignaturePlacer({ documentId, pageNumber, onSuccess, onC
                             isSaving={isSaving}
                             onSave={handleSave}
                             onCancel={onCancel}
+                            signerEmail={signerEmail}
                         />
                     </div>
                 </DndContext>

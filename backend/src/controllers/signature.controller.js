@@ -7,7 +7,7 @@ import dotenv from "dotenv"
 import { logAuditEvent } from "../utils/logger.js"
 
 dotenv.config()
-const EMAIL_REGEX = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
+const EMAIL_REGEX = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i
 
 export async function createSignaturePlaceholder(req, res) {
     const { documentId, pageNumber, xPercent, yPercent } = req.body
@@ -361,7 +361,7 @@ export async function getPublicSignature(req, res) {
     try {
         const { data: signature, error: signatureError } = await supabase
             .from("signatures")
-            .select("id, document_id, expires_at, signer_type, signer_ref, signer_email_hint, status")
+            .select("id, document_id, expires_at, signer_type, signer_ref, signer_email_hint, status, page_number, x_percent, y_percent, signer_email_hash")
             .eq("signer_ref", token)
             .maybeSingle()
         if (signatureError) {
@@ -369,6 +369,16 @@ export async function getPublicSignature(req, res) {
         }
         if (!signature) {
             return res.status(404).json({ message: "Signature not found" })
+        }
+
+        const { email } = req.query
+        if (email) {
+            if (!EMAIL_REGEX.test(email)) {
+                return res.status(400).json({ message: "Invalid email format" })
+            }
+            if (!checkEmailHash(email, signature.signer_email_hash)) {
+                return res.status(403).json({ message: "Email does not match intended signer" })
+            }
         }
         if (signature.expires_at < new Date()) {
             return res.status(409).json({ message: "Signature has expired" })
@@ -380,8 +390,8 @@ export async function getPublicSignature(req, res) {
             return res.status(403).json({ message: "Signature not owned by user" })
         }
 
-        if (signature.status !== "pending") {
-            return res.status(409).json({ message: "Signature is already consumed" })
+        if (signature.status !== "pending" && signature.status !== "signed") {
+            return res.status(409).json({ message: "Signature is in an invalid state" })
         }
 
         const { data: document, error: documentError } = await supabase
@@ -395,8 +405,8 @@ export async function getPublicSignature(req, res) {
         if (!document) {
             return res.status(404).json({ message: "Document not found" })
         }
-        if (document.status !== "pending" && document.status !== "ready_to_sign") {
-            return res.status(409).json({ message: "Document is no longer signable" })
+        if (document.status !== "pending" && document.status !== "ready_to_sign" && document.status !== "signed") {
+            return res.status(409).json({ message: "Document is no longer accessible" })
         }
 
         return res.status(200).json({
@@ -405,7 +415,11 @@ export async function getPublicSignature(req, res) {
                 id: signature.id,
                 documentId: signature.document_id,
                 emailHint: signature.signer_email_hint,
-                expiresAt: signature.expires_at
+                expiresAt: signature.expires_at,
+                pageNumber: signature.page_number,
+                xPercent: signature.x_percent,
+                yPercent: signature.y_percent,
+                status: signature.status
             }
         })
     } catch (error) {
@@ -415,15 +429,11 @@ export async function getPublicSignature(req, res) {
 }
 
 export async function finalizePublicSignature(req, res) {
-    const { email } = req.body
     const { token } = req.params
+    const { email } = req.body
 
-    if (!email) {
-        return res.status(400).json({ message: "Signer email is required" })
-    }
-
-    if (!EMAIL_REGEX.test(email)) {
-        return res.status(400).json({ message: "Invalid email format" })
+    if (!token) {
+        return res.status(400).json({ message: "Token is required" })
     }
 
     try {
@@ -451,7 +461,7 @@ export async function finalizePublicSignature(req, res) {
         if (signature.signer_ref !== token) {
             return res.status(403).json({ message: "Signature not owned by user" })
         }
-        if (signature.status !== "ready_to_sign") {
+        if (signature.status !== "pending") {
             return res.status(409).json({ message: "Signature is already consumed" })
         }
 
@@ -468,8 +478,8 @@ export async function finalizePublicSignature(req, res) {
         if (!document) {
             return res.status(404).json({ message: "Document not found" })
         }
-        if (document.status !== "pending") {
-            return res.status(409).json({ message: "Document is not in pending state" })
+        if (document.status !== "ready_to_sign") {
+            return res.status(409).json({ message: "Document is not in ready to sign state" })
         }
         if (document.signed_file_path) {
             return res.status(409).json({ message: "Document is already signed" })
@@ -624,5 +634,42 @@ export async function deleteSignature(req, res) {
     } catch (error) {
         console.error("Error deleting signature:", error);
         return res.status(500).json({ message: "Error deleting signature", error: error.message });
+    }
+}
+
+export async function getAllPublicSignatures(req, res) {
+    const { documentId } = req.params
+    const userId = req.user.id
+
+    if (!documentId) {
+        return res.status(400).json({ message: "Document ID is required" })
+    }
+
+    try {
+        const { data: document, error: docError } = await supabase
+            .from("documents")
+            .select("id")
+            .eq("id", documentId)
+            .eq("owner_id", userId)
+            .maybeSingle()
+
+        if (docError || !document) {
+            return res.status(403).json({ message: "Not authorized to view signatures for this document" })
+        }
+
+        const { data: signatures, error: signaturesError } = await supabase
+            .from("signatures")
+            .select("*")
+            .eq("document_id", documentId)
+            .eq("signer_type", "public")
+
+        if (signaturesError) {
+            return res.status(500).json({ message: "Error fetching public signatures" })
+        }
+
+        return res.status(200).json({ signatures: signatures || [] })
+    } catch (error) {
+        console.error("Error fetching public signatures:", error);
+        return res.status(500).json({ message: "Error fetching public signatures", error: error.message });
     }
 }

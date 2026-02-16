@@ -15,7 +15,7 @@ import {
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
-export default function PdfViewer({ fileUrl, onPageChange, children }) {
+export default function PdfViewer({ fileUrl, onPageChange, children, isPublic = false, publicEmail = "" }) {
     const [numPages, setNumPages] = useState(null)
     const [pageNumber, setPageNumber] = useState(1)
     const [loading, setLoading] = useState(true)
@@ -84,14 +84,30 @@ export default function PdfViewer({ fileUrl, onPageChange, children }) {
         setIsPopoverOpen(false)
     }
 
-    // Prepare auth headers
-    const token = localStorage.getItem("trace_token")
-    const options = useMemo(() => ({
-        httpHeaders: {
-            Authorization: `Bearer ${token}`,
-        },
-        withCredentials: true,
-    }), [token])
+    // PDF.js options with conditional auth
+    const options = useMemo(() => {
+        const token = localStorage.getItem("trace_token")
+        const headers = {}
+
+        if (!isPublic && token) {
+            headers.Authorization = `Bearer ${token}`
+        }
+
+        return {
+            httpHeaders: headers,
+            withCredentials: true,
+        }
+    }, [isPublic])
+
+    // Public URL with email query param if needed
+    const finalFileUrl = useMemo(() => {
+        if (isPublic && publicEmail) {
+            const url = new URL(fileUrl, window.location.origin)
+            url.searchParams.set("email", publicEmail)
+            return url.toString()
+        }
+        return fileUrl
+    }, [fileUrl, isPublic, publicEmail])
 
     return (
         <Card className="border-border/50 bg-card overflow-hidden">
@@ -112,7 +128,7 @@ export default function PdfViewer({ fileUrl, onPageChange, children }) {
                             )}
 
                             <Document
-                                file={fileUrl}
+                                file={finalFileUrl}
                                 onLoadSuccess={onDocumentLoadSuccess}
                                 onLoadError={onDocumentLoadError}
                                 onLoadProgress={() => setLoading(true)}

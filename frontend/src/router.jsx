@@ -15,6 +15,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"))
 const DocumentDetails = lazy(() => import("./pages/DocumentDetails"))
 const SignInternal = lazy(() => import("./pages/SignInternal"))
 const Documents = lazy(() => import("./pages/Documents"))
+const PublicSign = lazy(() => import("./pages/PublicSign"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
 /**
@@ -43,6 +44,10 @@ const router = createBrowserRouter([
             {
                 path: "register",
                 element: <Register />,
+            },
+            {
+                path: "sign/public/:token",
+                element: <PublicSign />,
             },
 
             // Protected Routes

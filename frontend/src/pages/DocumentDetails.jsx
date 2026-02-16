@@ -3,10 +3,11 @@ import { useState, useEffect, useMemo, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { getDocumentById, downloadOriginalDocument, downloadSignedDocument, triggerBlobDownload, deleteDocument } from "@/api/document.api"
-import { getAllSignatures, deleteSignature } from "@/api/signature.api"
+import { getAllSignatures, deleteSignature, getAllPublicSignatures } from "@/api/signature.api"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -45,25 +46,31 @@ function DocumentDetails() {
     const { id } = useParams()
     const navigate = useNavigate()
     const [document, setDocument] = useState(null)
-    const [signature, setSignature] = useState(null)
+    const [internalSignature, setInternalSignature] = useState(null)
+    const [publicSignatures, setPublicSignatures] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [downloading, setDownloading] = useState(false)
     const [deleting, setDeleting] = useState(false)
     const [isSigning, setIsSigning] = useState(false)
+    const [isPublicMode, setIsPublicMode] = useState(false)
+    const [showRequestDialog, setShowRequestDialog] = useState(false)
+    const [requestEmail, setRequestEmail] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
 
     useEffect(() => {
         const fetchDocument = async () => {
             try {
                 setLoading(true)
-                const [docRes, sigRes] = await Promise.all([
+                const [docRes, intRes, pubRes] = await Promise.all([
                     getDocumentById(id),
-                    getAllSignatures(id).catch(() => ({ signatures: null })) // Ignore 404 for signatures
+                    getAllSignatures(id).catch(() => ({ signatures: null })),
+                    getAllPublicSignatures(id).catch(() => ({ signatures: [] }))
                 ])
 
                 setDocument(docRes.document)
-                setSignature(sigRes.signatures)
+                setInternalSignature(intRes.signatures)
+                setPublicSignatures(pubRes.signatures || [])
                 setError("")
             } catch (err) {
                 setError(err.message || "Failed to fetch document details")
@@ -76,13 +83,19 @@ function DocumentDetails() {
 
     const refreshSignature = async () => {
         try {
-            const res = await getAllSignatures(id)
-            setSignature(res.signatures)
+            const [intRes, pubRes] = await Promise.all([
+                getAllSignatures(id).catch(() => ({ signatures: null })),
+                getAllPublicSignatures(id).catch(() => ({ signatures: [] }))
+            ])
+            setInternalSignature(intRes.signatures)
+            setPublicSignatures(pubRes.signatures || [])
             await refreshDocument()
             setIsSigning(false)
+            setIsPublicMode(false)
+            setShowRequestDialog(false)
+            setRequestEmail("")
         } catch (err) {
-            console.error("Failed to refresh signature", err)
-            setSignature(null) // Clear if failed/not found
+            console.error("Failed to refresh signatures", err)
         }
     }
 
@@ -96,13 +109,12 @@ function DocumentDetails() {
         }
     }
 
-    const handleDeleteSignature = async () => {
-        if (!signature?.id) return
+    const handleDeleteSignature = async (sigId) => {
+        if (!sigId) return
         try {
             setDeleting(true)
-            await deleteSignature(signature.id)
+            await deleteSignature(sigId)
             await refreshSignature()
-            await refreshDocument()
         } catch (err) {
             console.error("Failed to delete signature", err)
             setError(err.message || "Failed to delete signature")
@@ -277,26 +289,159 @@ function DocumentDetails() {
                                 <span className="absolute top-1.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider text-indigo-400/80 pointer-events-none">
                                     {document.status?.toLowerCase() === "ready_to_sign" ? "Signature" : "Sign"}
                                 </span>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            size="sm"
-                                            onClick={() => setIsSigning(!isSigning)}
-                                            variant={isSigning ? "secondary" : "default"}
-                                            className={`h-8 gap-2 font-semibold transition-all ${isSigning ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}
-                                        >
-                                            {isSigning ? <X className="h-4 w-4" /> : <PenTool className="h-4 w-4" />}
-                                            <span className="hidden xs:inline">
-                                                {isSigning ? "Cancel" : (signature ? "Relocate" : "Place")}
-                                            </span>
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">
-                                        <p>{isSigning ? "Stop placing signature" : (signature ? "Change signature position" : "Start placing signature")}</p>
-                                    </TooltipContent>
-                                </Tooltip>
 
-                                {isReadyToSign && (
+                                {isPending && !internalSignature && publicSignatures.length === 0 && (
+                                    <>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setIsSigning(!isSigning)
+                                                        setIsPublicMode(false)
+                                                    }}
+                                                    variant={isSigning && !isPublicMode ? "secondary" : "default"}
+                                                    className={`h-8 gap-2 font-semibold transition-all ${isSigning && !isPublicMode ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}
+                                                >
+                                                    {isSigning && !isPublicMode ? <X className="h-4 w-4" /> : <PenTool className="h-4 w-4" />}
+                                                    <span className="hidden xs:inline">
+                                                        {isSigning && !isPublicMode ? "Cancel" : "Self Sign"}
+                                                    </span>
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">
+                                                <p>{isSigning && !isPublicMode ? "Stop placing signature" : "Place your own signature"}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+
+                                        {/* REQUEST PUBLIC SIGNATURE */}
+                                        <div className="flex items-center gap-1.5">
+                                            {isSigning && isPublicMode ? (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="secondary"
+                                                            onClick={() => {
+                                                                setIsSigning(false)
+                                                                setIsPublicMode(false)
+                                                                setRequestEmail("")
+                                                            }}
+                                                            className="h-8 gap-2 font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                            <span className="hidden xs:inline">Cancel Request</span>
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        <p>Cancel requesting signature</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            ) : (
+                                                <AlertDialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="h-8 gap-2 font-semibold border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                                                                >
+                                                                    <Link2 className="h-4 w-4" />
+                                                                    <span className="hidden xs:inline">Request</span>
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top">
+                                                            <p>Request signature from others</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Request Signature</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Enter the email address of the person you'd like to sign this document.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <div className="py-2">
+                                                            <label className="text-sm font-medium mb-1.5 block">Signer Email</label>
+                                                            <Input
+                                                                type="email"
+                                                                placeholder="signer@example.com"
+                                                                value={requestEmail}
+                                                                onChange={(e) => setRequestEmail(e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel onClick={() => setRequestEmail("")}>Cancel</AlertDialogCancel>
+                                                            <Button
+                                                                disabled={!requestEmail || !requestEmail.includes("@")}
+                                                                onClick={() => {
+                                                                    setIsPublicMode(true)
+                                                                    setIsSigning(true)
+                                                                    setShowRequestDialog(false)
+                                                                }}
+                                                            >
+                                                                Start Placement
+                                                            </Button>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* PUBLIC SIGNATURE ACTIONS (DELETE) */}
+                                {publicSignatures.some(s => s.status === "pending") && (
+                                    <>
+                                        {(internalSignature || (isPending && publicSignatures.length === 0)) && (
+                                            <div className="w-px h-4 bg-amber-200/50 dark:bg-amber-500/20 mx-1"></div>
+                                        )}
+                                        {publicSignatures
+                                            .filter(s => s.status === "pending")
+                                            .map(sig => (
+                                                <AlertDialog key={sig.id}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    disabled={deleting}
+                                                                    className="h-8 w-8 p-0 text-amber-400 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                                >
+                                                                    {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top">
+                                                            <div className="text-center">
+                                                                <p className="font-bold">Cancel Request</p>
+                                                                <p className="text-[10px] opacity-80">{sig.signer_email_hint}</p>
+                                                            </div>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Cancel signature request?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                This will remove the signature placeholder for {sig.signer_email_hint} and invalidate their signing link.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Keep</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteSignature(sig.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                                Cancel Request
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            ))}
+                                    </>
+                                )}
+
+                                {internalSignature && (
                                     <>
                                         <div className="w-px h-4 bg-indigo-200/50 dark:bg-indigo-500/20 mx-1"></div>
                                         <Tooltip>
@@ -311,7 +456,7 @@ function DocumentDetails() {
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top">
-                                                <p>Finalize signature</p>
+                                                <p>Finalize your signature</p>
                                             </TooltipContent>
                                         </Tooltip>
 
@@ -330,19 +475,19 @@ function DocumentDetails() {
                                                     </AlertDialogTrigger>
                                                 </TooltipTrigger>
                                                 <TooltipContent side="top">
-                                                    <p>Remove current signature placeholder</p>
+                                                    <p>Remove your signature placeholder</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
-                                                    <AlertDialogTitle>Remove signature placeholder?</AlertDialogTitle>
+                                                    <AlertDialogTitle>Remove signature?</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        This will remove the current signature placement. You'll need to place it again before you can finalize the document.
+                                                        This will remove your current signature placement.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={handleDeleteSignature} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                    <AlertDialogAction onClick={() => handleDeleteSignature(internalSignature.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                                                         Remove
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
@@ -462,22 +607,34 @@ function DocumentDetails() {
                     onPageChange={setCurrentPage}
                 >
                     {/* 1. Placement Mode */}
-                    {isSigning && isPending && (
+                    {isSigning && (
                         <SignaturePlacer
                             documentId={id}
                             pageNumber={currentPage}
+                            signerEmail={isPublicMode ? requestEmail : null}
                             onSuccess={refreshSignature}
-                            onCancel={() => setIsSigning(false)}
+                            onCancel={() => {
+                                setIsSigning(false)
+                                setIsPublicMode(false)
+                                setRequestEmail("")
+                            }}
                         />
                     )}
 
-                    {/* 2. Visualizing Saved Signature (if not signing, or even if signing but on other pages?) */}
-                    {/* We show it if it exists and matches current page */}
-                    {!isSigning && signature && signature.status === "pending" && signature.page_number === currentPage && (
-                        <div className="absolute inset-0 z-30 pointer-events-none">
-                            <SavedSignature signature={signature} />
-                        </div>
-                    )}
+                    {/* 2. Visualizing All Signatures */}
+                    <div className="absolute inset-0 z-30 pointer-events-none">
+                        {/* Internal Pending Signature */}
+                        {!isSigning && internalSignature && internalSignature.status === "pending" && internalSignature.page_number === currentPage && (
+                            <SavedSignature signature={internalSignature} />
+                        )}
+
+                        {/* Public Pending Signatures */}
+                        {publicSignatures.map(sig => (
+                            sig.status === "pending" && sig.page_number === currentPage && (
+                                <SavedSignature key={sig.id} signature={sig} type="public" showPopover={true} />
+                            )
+                        ))}
+                    </div>
                 </PdfViewer>
             </div>
         </motion.div>
