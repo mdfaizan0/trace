@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { FileText, Clock, CheckCircle2, AlertCircle, Inbox, PenTool } from "lucide-react"
+import { FileText, Clock, CheckCircle2, AlertCircle, Inbox } from "lucide-react"
 
 function DocumentList({ refreshTrigger }) {
     const navigate = useNavigate()
@@ -46,13 +46,6 @@ function DocumentList({ refreshTrigger }) {
                     <Badge className="capitalize font-semibold bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         Signed
-                    </Badge>
-                )
-            case "ready_to_sign":
-                return (
-                    <Badge className="capitalize font-semibold bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20">
-                        <PenTool className="h-3 w-3 mr-1" />
-                        Ready to Sign
                     </Badge>
                 )
             case "pending":
@@ -140,7 +133,10 @@ function DocumentList({ refreshTrigger }) {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
                         >
-                            <Card onClick={() => navigate(`/dashboard/documents/${doc.id}`)} className="group border-border/50 bg-card hover:border-primary/30 hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer active:scale-[0.98]">
+                            <Card
+                                onClick={() => navigate(`/dashboard/documents/${doc.id}`)}
+                                className="group border-border/50 bg-card hover:border-primary/30 hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer active:scale-[0.98]"
+                            >
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-sm font-bold flex items-center gap-2 truncate">
                                         <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -149,10 +145,11 @@ function DocumentList({ refreshTrigger }) {
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <div className="text-[11px] text-muted-foreground/60 font-medium">
-                                            {formatDate(doc.created_at)}
-                                        </div>
+                                        <span className="text-xs text-muted-foreground">Status</span>
                                         {getStatusBadge(doc.status)}
+                                    </div>
+                                    <div className="text-[11px] text-muted-foreground/60 font-medium">
+                                        {formatDate(doc.created_at)}
                                     </div>
                                 </CardContent>
                             </Card>

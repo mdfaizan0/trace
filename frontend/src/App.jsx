@@ -2,6 +2,8 @@ import { Suspense } from "react"
 import { Outlet } from "react-router-dom"
 import Loading from "./components/Loading"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { Toaster } from "@/components/ui/sonner"
+import ErrorBoundary from "./components/ErrorBoundary"
 
 /**
  * Root Application Shell
@@ -9,11 +11,14 @@ import { TooltipProvider } from "@/components/ui/tooltip"
  */
 function App() {
   return (
-    <TooltipProvider delayDuration={300}>
-      <Suspense fallback={<Loading />}>
-        <Outlet />
-      </Suspense>
-    </TooltipProvider>
+    <ErrorBoundary>
+      <TooltipProvider delayDuration={300}>
+        <Suspense fallback={<Loading />}>
+          <Outlet />
+        </Suspense>
+        <Toaster closeButton position="top-right" richColors />
+      </TooltipProvider>
+    </ErrorBoundary>
   )
 }
 

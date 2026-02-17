@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { Loader2, AlertCircle, CheckCircle2, ShieldCheck, ArrowLeft } from "lucide-react"
+import { toast } from "sonner"
 
 export default function SignInternal() {
     const { id } = useParams()
@@ -40,6 +41,7 @@ export default function SignInternal() {
         setError("")
         try {
             await finalizeInternalSignature({ documentId: id })
+            toast.success("Document signed successfully")
             setSuccess(true)
             // Redirect after a short delay to let user see success state
             setTimeout(() => {
@@ -47,7 +49,9 @@ export default function SignInternal() {
             }, 2000)
         } catch (err) {
             console.error(err)
-            setError(err.response?.data?.message || "Failed to finalize signature. Please try again.")
+            const msg = err.response?.data?.message || err.message || "Failed to finalize signature. Please try again."
+            toast.error(msg)
+            setError(msg)
             setLoading(false)
         }
     }

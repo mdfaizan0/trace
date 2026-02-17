@@ -9,6 +9,7 @@ import { ShieldCheck, AlertCircle, Calendar, Mail, ArrowRight, Home, Loader2, Ch
 import { format } from "date-fns"
 import PdfViewer from "@/components/PdfViewer"
 import SavedSignature from "@/components/SavedSignature"
+import { toast } from "sonner"
 
 function PublicSign() {
     const { token } = useParams()
@@ -65,13 +66,16 @@ function PublicSign() {
             setSubmitting(true)
             setFinalizeError(null)
             await finalizePublicSignature(token, { email })
+            toast.success("Document signed successfully")
             setIsSuccess(true)
         } catch (err) {
             console.error("Failed to finalize public signature:", err)
             if (err.status === 409 && err.message?.toLowerCase().includes("expired")) {
                 setIsExpired(true)
             } else {
-                setFinalizeError(err.message || "Failed to sign document. Please check your email and try again.")
+                const msg = err.response?.data?.message || err.message || "Failed to sign document. Please check your email and try again."
+                toast.error(msg)
+                setFinalizeError(msg)
             }
         } finally {
             setSubmitting(false)

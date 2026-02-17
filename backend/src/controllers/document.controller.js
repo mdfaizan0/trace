@@ -64,7 +64,7 @@ export async function documentUpload(req, res) {
             actorType: "internal",
             actorRef: userId,
             action: "DOCUMENT_UPLOADED",
-            ipAddress: req.ip
+            ipAddress: req.headers["x-forwarded-for"] || req.ip
         })
 
         return res.status(201).json({
@@ -162,7 +162,7 @@ export async function downloadOriginalDocument(req, res) {
                 actorType: "internal",
                 actorRef: req.user.id,
                 action: "ORIGINAL_DOCUMENT_DOWNLOADED",
-                ipAddress: req.ip
+                ipAddress: req.headers["x-forwarded-for"] || req.ip
             })
         }
 
@@ -210,7 +210,7 @@ export async function downloadSignedDocument(req, res) {
                 actorType: "internal",
                 actorRef: req.user.id,
                 action: "SIGNED_DOCUMENT_DOWNLOADED",
-                ipAddress: req.ip
+                ipAddress: req.headers["x-forwarded-for"] || req.ip
             })
         }
 

@@ -1,17 +1,46 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FilePlus, Clock, CheckCircle2 } from "lucide-react"
 import UploadDocument from "@/components/UploadDocument"
 import DocumentList from "@/components/DocumentList"
+import { getAllDocuments } from "@/api/document.api"
 
 function Dashboard() {
     const [refreshKey, setRefreshKey] = useState(0)
+    const [documents, setDocuments] = useState([])
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await getAllDocuments()
+                setDocuments(response.documents || [])
+            } catch (err) {
+                console.error("Failed to fetch documents for stats:", err)
+            }
+        }
+        fetchStats()
+    }, [refreshKey])
 
     const stats = [
-        { label: "Active Requests", value: "3", icon: Clock, color: "text-amber-500" },
-        { label: "Completed", value: "12", icon: CheckCircle2, color: "text-emerald-500" },
-        { label: "Total Files", value: "15", icon: FilePlus, color: "text-blue-500" },
+        {
+            label: "Active Requests",
+            value: documents.filter(d => d.status !== 'signed').length.toString(),
+            icon: Clock,
+            color: "text-amber-500"
+        },
+        {
+            label: "Completed",
+            value: documents.filter(d => d.status === 'signed').length.toString(),
+            icon: CheckCircle2,
+            color: "text-emerald-500"
+        },
+        {
+            label: "Total Files",
+            value: documents.length.toString(),
+            icon: FilePlus,
+            color: "text-blue-500"
+        },
     ]
 
     return (

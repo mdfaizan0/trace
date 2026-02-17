@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileUp, FileText, CheckCircle2, AlertCircle, Loader2, X, Upload, Pencil } from "lucide-react"
+import { toast } from "sonner"
 
 function UploadDocument({ onUploadSuccess }) {
     const [file, setFile] = useState(null)
@@ -79,11 +80,14 @@ function UploadDocument({ onUploadSuccess }) {
                 setProgress(percentCompleted)
             })
             setSuccess(true)
+            toast.success("Document uploaded successfully")
             setFile(null)
             setTitle("")
             onUploadSuccess?.()
         } catch (err) {
-            setError(err.response?.data?.message || err.message || "Failed to upload document")
+            const msg = err.response?.data?.message || err.message || "Failed to upload document"
+            toast.error(msg)
+            setError(msg)
             setProgress(0)
         } finally {
             setLoading(false)

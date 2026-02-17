@@ -14,8 +14,9 @@ import {
     FileText, ArrowLeft, CheckCircle2, Clock, AlertCircle,
     PenTool, Link2, Eye, FileQuestion, Hash, Calendar, Download, Trash2, Loader2,
     MoreVertical, X,
-    ShieldCheck
+    ShieldCheck, History
 } from "lucide-react"
+import { toast } from "sonner"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -184,9 +185,11 @@ function DocumentDetails() {
         try {
             setDeleting(true)
             await deleteDocument(id)
+            toast.success("Document deleted successfully")
             navigate("/dashboard")
         } catch (err) {
-            setError(err.message || "Failed to delete document")
+            const msg = err.response?.data?.message || err.message || "Failed to delete document"
+            toast.error(msg)
             setDeleting(false)
         }
     }
@@ -577,6 +580,24 @@ function DocumentDetails() {
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
+
+                            <div className="w-px h-4 bg-border/60 mx-1"></div>
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => navigate(`/dashboard/documents/${id}/audit`)}
+                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-500/5 transition-colors"
+                                    >
+                                        <History className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                    <p>View Audit Trail</p>
+                                </TooltipContent>
+                            </Tooltip>
                         </div>
                     </div>
                 </div>

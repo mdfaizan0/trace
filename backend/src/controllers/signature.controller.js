@@ -94,7 +94,7 @@ export async function createSignaturePlaceholder(req, res) {
             actorType: "internal",
             actorRef: userId,
             action: "SIGNATURE_PLACEHOLDER_CREATED",
-            ipAddress: req.ip
+            ipAddress: req.headers["x-forwarded-for"] || req.ip
         })
 
         const { error: updatedDocumentError } = await supabase
@@ -223,7 +223,7 @@ export async function finalizeSignature(req, res) {
             actorType: "internal",
             actorRef: userId,
             action: "DOCUMENT_SIGNED_INTERNAL",
-            ipAddress: req.ip
+            ipAddress: req.headers["x-forwarded-for"] || req.ip
         })
 
         return res.status(200).json({
@@ -321,7 +321,7 @@ export async function createPublicSignaturePlaceholder(req, res) {
             actorType: "internal",
             actorRef: userId,
             action: "PUBLIC_SIGNATURE_LINK_CREATED",
-            ipAddress: req.ip
+            ipAddress: req.headers["x-forwarded-for"] || req.ip
         })
 
         const { error: updatedDocumentError } = await supabase
@@ -533,7 +533,7 @@ export async function finalizePublicSignature(req, res) {
             actorType: "public",
             actorRef: token,
             action: "DOCUMENT_SIGNED_PUBLIC",
-            ipAddress: req.ip
+            ipAddress: req.headers["x-forwarded-for"] || req.ip
         })
 
         return res.status(200).json({
@@ -625,7 +625,7 @@ export async function deleteSignature(req, res) {
             actorType: "internal",
             actorRef: userId,
             action: "SIGNATURE_PLACEHOLDER_DELETED",
-            ipAddress: req.ip
+            ipAddress: req.headers["x-forwarded-for"] || req.ip
         })
 
         return res.status(200).json({

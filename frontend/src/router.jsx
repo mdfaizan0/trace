@@ -16,6 +16,7 @@ const DocumentDetails = lazy(() => import("./pages/DocumentDetails"))
 const SignInternal = lazy(() => import("./pages/SignInternal"))
 const Documents = lazy(() => import("./pages/Documents"))
 const PublicSign = lazy(() => import("./pages/PublicSign"))
+const AuditLog = lazy(() => import("./pages/AuditLog"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
 /**
@@ -69,6 +70,10 @@ const router = createBrowserRouter([
                             {
                                 path: "dashboard/documents/:id/sign",
                                 element: <SignInternal />,
+                            },
+                            {
+                                path: "dashboard/documents/:id/audit",
+                                element: <AuditLog />,
                             },
                             {
                                 path: "documents",

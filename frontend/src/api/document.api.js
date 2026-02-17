@@ -62,3 +62,8 @@ export const triggerBlobDownload = (blob, filename) => {
 export const deleteDocument = async (id) => {
     return api.delete(`/api/documents/${id}`)
 }
+
+export const getDocumentAuditLogs = async (documentId) => {
+    const res = await api.get(`/api/audit/${documentId}`)
+    return res.logs
+}
