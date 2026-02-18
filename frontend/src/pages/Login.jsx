@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { ShieldCheck, Loader2, ArrowRight } from "lucide-react"
+import { Loader2, ArrowRight } from "lucide-react"
 import Logo from "@/components/ui/Logo"
 
 function Login() {
@@ -59,10 +59,10 @@ function Login() {
                 className="hidden lg:flex flex-col justify-between w-[45%] p-16 bg-muted border-r border-border"
             >
                 <div className="flex items-center gap-2.5 text-primary font-bold text-2xl tracking-tight">
-                    <div className="bg-primary text-primary-foreground p-1 rounded-lg shadow-sm">
-                        <Logo className="h-6 w-6 brightness-0 invert" />
-                    </div>
-                    <span>Trace</span>
+                    <Link to="/" className="flex items-center gap-2.5 mb-10 px-2 text-primary font-bold text-xl tracking-tight">
+                        <Logo className="h-6 w-6" />
+                        <span>Trace</span>
+                    </Link>
                 </div>
 
                 <div className="space-y-8">
@@ -119,8 +119,10 @@ function Login() {
                     transition={{ duration: 0.5, ease: "easeOut" }}
                     className="w-full max-w-[420px]"
                 >
-                    <div className="lg:hidden flex items-center justify-center gap-2 text-primary font-bold text-2xl mb-12">
-                        <ShieldCheck className="h-8 w-8" />
+                    <div className="lg:hidden flex items-center justify-center gap-2.5 text-primary font-bold text-2xl mb-12">
+                        <div className="bg-primary text-primary-foreground p-1 rounded-lg shadow-sm">
+                            <Logo className="h-6 w-6 brightness-0 invert" />
+                        </div>
                         <span>Trace</span>
                     </div>
 
