@@ -1,14 +1,14 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { signup } from "@/api/auth.api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { ShieldCheck, Loader2, UserPlus } from "lucide-react"
+import Logo from "@/components/ui/Logo"
 
 function Register() {
     const [formData, setFormData] = useState({ name: "", email: "", password: "" })
@@ -16,6 +16,13 @@ function Register() {
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
     const navigate = useNavigate()
+
+    useEffect(() => {
+        const token = localStorage.getItem("trace_token")
+        if (token) {
+            navigate("/dashboard", { replace: true })
+        }
+    }, [navigate])
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -51,8 +58,8 @@ function Register() {
                 className="hidden lg:flex flex-col justify-between w-[45%] p-16 bg-muted border-r border-border"
             >
                 <div className="flex items-center gap-2.5 text-primary font-bold text-2xl tracking-tight">
-                    <div className="bg-primary text-primary-foreground p-1.5 rounded-lg shadow-sm">
-                        <ShieldCheck className="h-6 w-6" />
+                    <div className="bg-primary text-primary-foreground p-1 rounded-lg shadow-sm">
+                        <Logo className="h-6 w-6 brightness-0 invert" />
                     </div>
                     <span>Trace</span>
                 </div>

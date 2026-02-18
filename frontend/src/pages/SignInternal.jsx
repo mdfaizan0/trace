@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, AlertCircle, CheckCircle2, ShieldCheck, ArrowLeft } from "lucide-react"
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react"
+import Logo from "@/components/ui/Logo"
 import { toast } from "sonner"
 
 export default function SignInternal() {
@@ -94,7 +95,7 @@ export default function SignInternal() {
 
                     <CardHeader className="text-center pb-2 pt-8">
                         <div className="mx-auto h-12 w-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
-                            <ShieldCheck className="h-6 w-6" />
+                            <Logo className="h-6 w-6" />
                         </div>
                         <CardTitle className="text-2xl">Finalize Signature</CardTitle>
                         <CardDescription>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { getAllDocuments } from "@/api/document.api"
@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { FileText, Clock, CheckCircle2, AlertCircle, Inbox } from "lucide-react"
+import { FileText, Clock, CheckCircle2, AlertCircle, Inbox, Search } from "lucide-react"
 
-function DocumentList({ refreshTrigger }) {
+function DocumentList({ refreshTrigger, searchQuery = "", sortBy = "newest", statusFilter = "all" }) {
     const navigate = useNavigate()
     const [documents, setDocuments] = useState([])
     const [loading, setLoading] = useState(true)
@@ -30,6 +30,41 @@ function DocumentList({ refreshTrigger }) {
     useEffect(() => {
         fetchDocuments()
     }, [refreshTrigger])
+
+    const filteredAndSortedDocuments = useMemo(() => {
+        let result = [...documents];
+
+        // Search Filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(doc =>
+                doc.title.toLowerCase().includes(query)
+            );
+        }
+
+        // Status Filter
+        if (statusFilter !== "all") {
+            result = result.filter(doc => doc.status?.toLowerCase() === statusFilter.toLowerCase());
+        }
+
+        // Sort Logic
+        result.sort((a, b) => {
+            switch (sortBy) {
+                case "newest":
+                    return new Date(b.created_at) - new Date(a.created_at);
+                case "oldest":
+                    return new Date(a.created_at) - new Date(b.created_at);
+                case "name_az":
+                    return a.title.localeCompare(b.title);
+                case "name_za":
+                    return b.title.localeCompare(a.title);
+                default:
+                    return 0;
+            }
+        });
+
+        return result;
+    }, [documents, searchQuery, sortBy, statusFilter]);
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString(undefined, {
@@ -121,12 +156,31 @@ function DocumentList({ refreshTrigger }) {
         )
     }
 
+    if (filteredAndSortedDocuments.length === 0) {
+        return (
+            <div className="space-y-4">
+                <h2 className="text-lg font-bold text-foreground">Your Documents</h2>
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center p-12 rounded-2xl border-2 border-dashed border-border/40 bg-muted/5 text-center"
+                >
+                    <Search className="h-8 w-8 text-muted-foreground/20 mb-3" />
+                    <h3 className="text-sm font-semibold text-foreground">No documents found</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        No matches found for your current search or filters.
+                    </p>
+                </motion.div>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-4">
             <h2 className="text-lg font-bold text-foreground">Your Documents</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <AnimatePresence>
-                    {documents.map((doc, index) => (
+                <AnimatePresence mode="popLayout">
+                    {filteredAndSortedDocuments.map((doc, index) => (
                         <motion.div
                             key={doc.id}
                             initial={{ opacity: 0, y: 20 }}

@@ -151,9 +151,4 @@ npm run dev
 
 ---
 
-## � Known Issues
--
-
----
-
 Thank You 💚

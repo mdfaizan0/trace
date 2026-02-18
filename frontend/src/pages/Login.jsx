@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { ShieldCheck, Loader2, ArrowRight } from "lucide-react"
+import Logo from "@/components/ui/Logo"
 
 function Login() {
     const [formData, setFormData] = useState({ email: "", password: "" })
@@ -58,8 +59,8 @@ function Login() {
                 className="hidden lg:flex flex-col justify-between w-[45%] p-16 bg-muted border-r border-border"
             >
                 <div className="flex items-center gap-2.5 text-primary font-bold text-2xl tracking-tight">
-                    <div className="bg-primary text-primary-foreground p-1.5 rounded-lg shadow-sm">
-                        <ShieldCheck className="h-6 w-6" />
+                    <div className="bg-primary text-primary-foreground p-1 rounded-lg shadow-sm">
+                        <Logo className="h-6 w-6 brightness-0 invert" />
                     </div>
                     <span>Trace</span>
                 </div>

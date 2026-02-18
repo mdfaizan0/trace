@@ -17,6 +17,7 @@ const SignInternal = lazy(() => import("./pages/SignInternal"))
 const Documents = lazy(() => import("./pages/Documents"))
 const PublicSign = lazy(() => import("./pages/PublicSign"))
 const AuditLog = lazy(() => import("./pages/AuditLog"))
+const Security = lazy(() => import("./pages/Security"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
 /**
@@ -49,6 +50,10 @@ const router = createBrowserRouter([
             {
                 path: "sign/public/:token",
                 element: <PublicSign />,
+            },
+            {
+                path: "security",
+                element: <Security />,
             },
 
             // Protected Routes

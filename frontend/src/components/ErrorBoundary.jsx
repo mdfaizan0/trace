@@ -44,21 +44,21 @@ class ErrorBoundary extends React.Component {
                                 Our engineers have been notified. Please try refreshing the page or contact support if the problem persists.
                             </p>
                         </CardContent>
-                        <CardFooter className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border/40">
+                        <CardFooter className="flex flex-row gap-3 pt-6 border-t border-border/40">
                             <Button
                                 variant="outline"
-                                className="w-full gap-2 font-semibold"
+                                className="flex-1 gap-2 h-11 font-semibold hover:bg-accent/50 transition-all border-border/60"
                                 onClick={() => window.location.href = "/"}
                             >
                                 <Home className="h-4 w-4" />
                                 Go Home
                             </Button>
                             <Button
-                                className="w-full gap-2 font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg shadow-destructive/20"
+                                className="flex-1 gap-2 h-11 font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg shadow-destructive/20 border-0 transition-all active:scale-[0.98]"
                                 onClick={() => window.location.reload()}
                             >
                                 <RefreshCcw className="h-4 w-4" />
-                                Reload App
+                                Reload
                             </Button>
                         </CardFooter>
                     </Card>

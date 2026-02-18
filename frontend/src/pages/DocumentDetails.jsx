@@ -14,8 +14,9 @@ import {
     FileText, ArrowLeft, CheckCircle2, Clock, AlertCircle,
     PenTool, Link2, Eye, FileQuestion, Hash, Calendar, Download, Trash2, Loader2,
     MoreVertical, X,
-    ShieldCheck, History
+    History
 } from "lucide-react"
+import Logo from "@/components/ui/Logo"
 import { toast } from "sonner"
 import {
     AlertDialog,
@@ -454,7 +455,7 @@ function DocumentDetails() {
                                                     onClick={() => navigate(`/dashboard/documents/${id}/sign`)}
                                                     className="h-8 gap-2 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all"
                                                 >
-                                                    <ShieldCheck className="h-4 w-4" />
+                                                    <Logo className="h-4 w-4 brightness-0 invert" />
                                                     <span className="hidden xs:inline">Finalize</span>
                                                 </Button>
                                             </TooltipTrigger>

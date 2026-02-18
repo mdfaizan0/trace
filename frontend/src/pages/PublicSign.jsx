@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ShieldCheck, AlertCircle, Calendar, Mail, ArrowRight, Home, Loader2, CheckCircle2 } from "lucide-react"
+import { AlertCircle, Calendar, Mail, ArrowRight, Home, Loader2, CheckCircle2 } from "lucide-react"
+import Logo from "@/components/ui/Logo"
 import { format } from "date-fns"
 import PdfViewer from "@/components/PdfViewer"
 import SavedSignature from "@/components/SavedSignature"
@@ -92,8 +93,8 @@ function PublicSign() {
             <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
 
             {/* Logo */}
-            <div className="flex items-center gap-2 mb-8 text-primary font-bold text-2xl relative z-10">
-                <ShieldCheck className="h-8 w-8 text-amber-600" />
+            <div className="flex items-center gap-2.5 mb-8 text-primary font-bold text-2xl relative z-10 transition-all hover:scale-[1.02]">
+                <Logo className="h-8 w-8" />
                 <span>Trace <span className="text-muted-foreground/60 font-medium">Public</span></span>
             </div>
 
@@ -117,7 +118,7 @@ function PublicSign() {
                     ) : (
                         <div className="h-full min-h-[400px] border border-dashed border-border/60 rounded-xl bg-card/50 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center">
                             <div className="w-16 h-16 bg-muted/40 rounded-full flex items-center justify-center mb-4">
-                                <ShieldCheck className="h-8 w-8 text-muted-foreground/40" />
+                                <Logo className="h-8 w-8 grayscale opacity-20" />
                             </div>
                             <h3 className="text-lg font-semibold text-muted-foreground/60">Document Preview</h3>
                             <p className="text-sm text-muted-foreground/40 max-w-xs mt-2 italic">

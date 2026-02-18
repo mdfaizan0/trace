@@ -7,7 +7,6 @@ import {
     LayoutDashboard,
     FileText,
     LogOut,
-    ShieldCheck,
     Menu,
     X,
     Bell,
@@ -15,6 +14,7 @@ import {
     Sun,
     Moon
 } from "lucide-react"
+import Logo from "@/components/ui/Logo"
 import { getMyProfile, logout } from "@/api/auth.api"
 import { useTheme } from "@/hooks/theme/useTheme"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -63,10 +63,10 @@ function DashboardLayout() {
 
     const SidebarContent = () => (
         <div className="flex flex-col h-full bg-background border-r border-border p-6">
-            <div className="flex items-center gap-2 mb-10 px-2 text-primary font-bold text-xl">
-                <ShieldCheck className="h-6 w-6" />
+            <Link to="/" className="flex items-center gap-2.5 mb-10 px-2 text-primary font-bold text-xl tracking-tight">
+                <Logo className="h-6 w-6" />
                 <span>Trace</span>
-            </div>
+            </Link>
 
             <nav className="flex-1 space-y-1">
                 {NAV_ITEMS.map((item) => (
