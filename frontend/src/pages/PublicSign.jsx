@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, Calendar, Mail, ArrowRight, Home, Loader2, CheckCircle2 } from "lucide-react"
+import { AlertCircle, Calendar, Mail, ArrowRight, Home, Loader2, CheckCircle2, ShieldCheck } from "lucide-react"
 import Logo from "@/components/ui/Logo"
 import { format } from "date-fns"
 import PdfViewer from "@/components/PdfViewer"
@@ -303,21 +303,22 @@ function PublicSign() {
                                             onClick={async () => {
                                                 if (!email.trim()) return
 
-                                                if (data.status === "signed") {
-                                                    try {
-                                                        setSubmitting(true)
-                                                        setFinalizeError(null)
-                                                        await getPublicSignature(token, email)
-                                                        setShowForm(true)
+                                                try {
+                                                    setSubmitting(true)
+                                                    setFinalizeError(null)
+
+                                                    // Verify Identity with Backend
+                                                    const res = await getPublicSignature(token, email)
+
+                                                    if (data.status === "signed") {
                                                         setIsSuccess(true)
-                                                    } catch (err) {
-                                                        console.error("Failed to verify identity:", err)
-                                                        setFinalizeError(err.message || "Email verification failed. Please check your email and try again.")
-                                                    } finally {
-                                                        setSubmitting(false)
                                                     }
-                                                } else {
                                                     setShowForm(true)
+                                                } catch (err) {
+                                                    console.error("Failed to verify identity:", err)
+                                                    setFinalizeError(err.message || "Email verification failed. Please check your email and try again.")
+                                                } finally {
+                                                    setSubmitting(false)
                                                 }
                                             }}
                                             disabled={!email.trim() || submitting}

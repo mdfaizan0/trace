@@ -225,14 +225,13 @@ function Home() {
                                 {/* FLOATING ELEMENT: STATS */}
                                 <motion.div
                                     animate={{
-                                        y: [0, 12, 0],
-                                        x: [0, 8, 0]
+                                        y: [0, -12, 0],
+                                        rotate: [-2, 1, -2]
                                     }}
                                     transition={{
-                                        duration: 10,
+                                        duration: 8,
                                         repeat: Infinity,
-                                        ease: "easeInOut",
-                                        delay: 1
+                                        ease: "easeInOut"
                                     }}
                                     className="absolute -bottom-10 -left-10 z-20 hidden sm:block"
                                 >

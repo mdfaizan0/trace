@@ -35,11 +35,16 @@ api.interceptors.response.use(
             status: error.response?.status || 500,
             data: error.response?.data,
         }
-        
+
         if (normalizedError.status === 401) {
             localStorage.removeItem("trace_token")
             localStorage.removeItem("trace_user")
-            window.location.href = "/login"
+
+            // Only redirect if we're not already on the login or register page
+            const publicPaths = ["/login", "/register", "/"]
+            if (!publicPaths.includes(window.location.pathname)) {
+                window.location.href = "/login"
+            }
         }
 
         if (error.response?.data?.message) {

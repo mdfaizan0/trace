@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { FileText, Clock, CheckCircle2, AlertCircle, Inbox, Search } from "lucide-react"
+import { FileText, Clock, CheckCircle2, AlertCircle, Inbox, Search, PenTool } from "lucide-react"
 
 function DocumentList({ refreshTrigger, searchQuery = "", sortBy = "newest", statusFilter = "all" }) {
     const navigate = useNavigate()
@@ -90,6 +90,13 @@ function DocumentList({ refreshTrigger, searchQuery = "", sortBy = "newest", sta
                         Pending
                     </Badge>
                 )
+            case "ready_to_sign":
+                return (
+                    <Badge className="font-semibold bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20">
+                        <PenTool className="h-3 w-3 mr-1" />
+                        Ready to Sign
+                    </Badge>
+                )
             default:
                 return (
                     <Badge variant="outline" className="capitalize">
@@ -149,7 +156,7 @@ function DocumentList({ refreshTrigger, searchQuery = "", sortBy = "newest", sta
                     </div>
                     <h3 className="text-base font-semibold text-foreground">No documents yet</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-[280px]">
-                        Upload your first PDF above to start tracking signature progress here.
+                        Upload your first PDF to start tracking signature progress here.
                     </p>
                 </motion.div>
             </div>

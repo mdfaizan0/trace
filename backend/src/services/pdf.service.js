@@ -1,7 +1,7 @@
 import { PDFDocument, rgb } from "pdf-lib"
 
 export async function generateSignedPdf(pdfBuffer, signature) {
-    const pdfDoc = await PDFDocument.load(pdfBuffer)
+    const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true })
 
     const page = pdfDoc.getPage(signature.page_number - 1)
     const { width, height } = page.getSize()

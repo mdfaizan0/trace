@@ -366,8 +366,9 @@ export async function downloadDocumentForPublic(req, res) {
         const buffer = Buffer.from(await file.arrayBuffer())
 
         res.set("Content-Type", "application/pdf");
-        const filename = type === "signed" ? `${document.title}_signed.pdf` : `${document.title}.pdf`
-        res.set("Content-Disposition", `attachment; filename="${filename}"`);
+        const baseTitle = type === "signed" ? `${document.title}_signed` : document.title;
+        const encodedFilename = encodeURIComponent(baseTitle).replace(/['()]/g, escape).replace(/\*/g, "%2A");
+        res.set("Content-Disposition", `attachment; filename="${baseTitle.replace(/"/g, '\\"')}.pdf"; filename*=UTF-8''${encodedFilename}.pdf`);
         res.send(buffer);
     } catch (error) {
         console.error("Error downloading public document:", error);
