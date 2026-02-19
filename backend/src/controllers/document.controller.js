@@ -169,7 +169,9 @@ export async function downloadOriginalDocument(req, res) {
         const buffer = Buffer.from(await file.arrayBuffer())
 
         res.set("Content-Type", "application/pdf");
-        res.set("Content-Disposition", `attachment; filename="${document.title}.pdf"`);
+        const baseTitle = document.title;
+        const encodedFilename = encodeURIComponent(baseTitle).replace(/['()]/g, escape).replace(/\*/g, "%2A");
+        res.set("Content-Disposition", `attachment; filename="${baseTitle.replace(/"/g, '\\"')}.pdf"; filename*=UTF-8''${encodedFilename}.pdf`);
         res.send(buffer);
     } catch (error) {
         console.error("Error downloading original document:", error);
@@ -217,7 +219,9 @@ export async function downloadSignedDocument(req, res) {
         const buffer = Buffer.from(await file.arrayBuffer())
 
         res.set("Content-Type", "application/pdf");
-        res.set("Content-Disposition", `attachment; filename="${document.title}.pdf"`);
+        const baseTitle = document.title;
+        const encodedFilename = encodeURIComponent(baseTitle).replace(/['()]/g, escape).replace(/\*/g, "%2A");
+        res.set("Content-Disposition", `attachment; filename="${baseTitle.replace(/"/g, '\\"')}.pdf"; filename*=UTF-8''${encodedFilename}_signed.pdf`);
         res.send(buffer);
     } catch (error) {
         console.error("Error downloading signed document:", error);
