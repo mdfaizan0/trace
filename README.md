@@ -2,6 +2,10 @@
 
 **Trace** is a high-fidelity digital asset authentication and document signing platform. It provides an immutable ledger of all actions taken on a document, ensuring transparency, security, and an ironclad audit trail for any digital asset.
 
+## Live Demo
+
+Trace is currently live at [https://trace-ten-delta.vercel.app/](https://trace-ten-delta.vercel.app/).
+
 ## 🚀 Tech Stack
 
 ### Frontend
